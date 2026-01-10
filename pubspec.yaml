@@ -1,13 +1,31 @@
 name: imp_trading_chart
 description: >
   A high-performance trading chart engine for Flutter, inspired by
-  TradingView Lightweight Charts. Built as an engine-first, CustomPainter-based
-  solution optimized for large datasets, real-time updates, and smooth
-  pan/zoom interactions.
+  TradingView Lightweight Charts. Built with an engine-first architecture
+  and CustomPainter rendering, it is optimized for large datasets,
+  real-time price updates, and smooth pan & zoom interactions.
+  Designed for financial, crypto, and trading applications where
+  performance, precision, and extensibility matter.
+
 version: 0.1.0
+
 homepage: https://github.com/rahul-cse-25/imp_trading_chart
 repository: https://github.com/rahul-cse-25/imp_trading_chart
 issue_tracker: https://github.com/rahul-cse-25/imp_trading_chart/issues
+documentation: https://github.com/rahul-cse-25/imp_trading_chart/blob/main/README.md
+
+#screenshots:
+#  - description: Trading chart with live updates
+#    path: screenshots/trading_chart.png
+#  - description: Compact chart optimized for dashboards
+#    path: screenshots/compact_chart.png
+
+topics:
+  - charts
+  - trading
+  - finance
+  - visualization
+  - flutter
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -20,8 +38,15 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
-flutter:
-# This package does not bundle assets or fonts.
-# It is a pure rendering & widget package.
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+# Pure rendering & chart engine package.
+# No bundled assets or platform-specific resources.
