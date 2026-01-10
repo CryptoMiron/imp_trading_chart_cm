@@ -377,7 +377,7 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
       // =========================================================================
       appBar: AppBar(
         title: const Text(
-          'Chart Factory Methods',
+          'Chart Showcase',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF1A1F3A),
@@ -385,6 +385,7 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: Colors.cyan,
           labelColor: Colors.cyan,
           unselectedLabelColor: Colors.white54,
