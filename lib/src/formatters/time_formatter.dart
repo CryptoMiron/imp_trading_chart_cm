@@ -1,245 +1,454 @@
-/// Context information for responsive time formatting
-class TimeFormatContext {
-  /// Duration of the visible time range
-  final Duration visibleTimeSpan;
-
-  /// Whether this is the first label
-  final bool isFirstLabel;
-
-  /// Whether this is the last label
-  final bool isLastLabel;
-
-  /// Position of the label (0-based)
-  final int labelIndex;
-
-  /// Total number of labels being displayed
-  final int totalLabels;
-
-  const TimeFormatContext({
-    required this.visibleTimeSpan,
-    required this.isFirstLabel,
-    required this.isLastLabel,
-    required this.labelIndex,
-    required this.totalLabels,
-  });
-}
-
-/// Flexible time formatter for custom time/date label formatting.
+/// ---------------------------------------------------------------------------
+/// TIME FORMAT CONTEXT
+/// ---------------------------------------------------------------------------
 ///
-/// Implement this interface to provide custom time formatting logic.
-/// Default implementation provides smart formatting based on time range.
-abstract class TimeFormatter {
-  /// Format a timestamp (seconds since epoch) for display
-  ///
-  /// [context] is optional and provides information about the visible time range
-  /// and label position for responsive formatting. If not provided, formatters
-  /// should use default behavior.
-  String format(int timestamp, {TimeFormatContext? context});
+/// Provides contextual information to time formatters so they can
+/// adapt output based on:
+/// - Current zoom level
+/// - Visible time span
+/// - Label position (first / middle / last)
+///
+/// This enables TradingView-style responsive time labels where:
+/// - Zoomed out → show years / months
+/// - Zoomed in → show hours / seconds
+/// - First & last labels often include more information
+class TimeFormatContext {
+    /// Total duration covered by the currently visible candles
+    ///
+    /// Used to decide whether to show:
+    /// - Year
+    /// - Month
+    /// - Date
+    /// - Time
+    final Duration visibleTimeSpan;
 
-  /// Default formatter that provides smart formatting based on time range
-  factory TimeFormatter.smart() => _SmartTimeFormatter();
+    /// Whether this label is the first visible label on the axis
+    final bool isFirstLabel;
 
-  /// Hour:Minute formatter (14:30)
-  factory TimeFormatter.hourMinute() => _HourMinuteFormatter();
+    /// Whether this label is the last visible label on the axis
+    final bool isLastLabel;
 
-  /// Full date time formatter (2024-01-15 14:30)
-  factory TimeFormatter.dateTime() => _DateTimeFormatter();
+    /// Zero-based index of this label among visible labels
+    final int labelIndex;
 
-  /// Date only formatter (2024-01-15)
-  factory TimeFormatter.dateOnly() => _DateOnlyFormatter();
+    /// Total number of labels currently displayed
+    final int totalLabels;
 
-  /// Day name formatter (Mon, Tue, etc.)
-  factory TimeFormatter.dayName() => _DayNameFormatter();
-
-  /// Custom formatter with format string (uses DateFormat pattern)
-  factory TimeFormatter.custom(String pattern) => _CustomTimeFormatter(pattern);
+    const TimeFormatContext({
+        required this.visibleTimeSpan,
+        required this.isFirstLabel,
+        required this.isLastLabel,
+        required this.labelIndex,
+        required this.totalLabels,
+    });
 }
 
-/// Month name abbreviations (US format)
+/// ---------------------------------------------------------------------------
+/// TIME FORMATTER API
+/// ---------------------------------------------------------------------------
+///
+/// Strategy interface for formatting timestamps on the X-axis and crosshair.
+///
+/// Design goals:
+/// - Stateless
+/// - Replaceable by users
+/// - Context-aware (via [TimeFormatContext])
+/// - No dependency on chart internals
+///
+/// Timestamp unit:
+/// - `int timestamp` is **seconds since epoch**
+///
+/// Example usage:
+/// ```dart
+/// ChartStyle(
+///   timeLabelStyle: TimeLabelStyle(
+///     formatter: TimeFormatter.smart(),
+///   ),
+/// )
+/// ```
+abstract class TimeFormatter {
+    /// Formats a timestamp (seconds since epoch) into a display string.
+    ///
+    /// [context] provides information about:
+    /// - Visible time span
+    /// - Whether this label is first or last
+    /// - Label density
+    ///
+    /// If [context] is null, formatters should fall back to a reasonable default.
+    String format(int timestamp, {TimeFormatContext? context});
+
+    /// -------------------------------------------------------------------------
+    /// FACTORY CONSTRUCTORS (PUBLIC API)
+    /// -------------------------------------------------------------------------
+
+    /// Smart formatter that adapts output based on zoom level.
+    ///
+    /// This is the recommended default and mimics TradingView behavior.
+    factory TimeFormatter.smart() => _SmartTimeFormatter();
+
+    /// Simple hour:minute formatter (24h format).
+    ///
+    /// Example: "14:30"
+    factory TimeFormatter.hourMinute() => _HourMinuteFormatter();
+
+    /// Full date + time formatter.
+    ///
+    /// Example: "2024-01-15 14:30"
+    factory TimeFormatter.dateTime() => _DateTimeFormatter();
+
+    /// Date-only formatter.
+    ///
+    /// Example: "2024-01-15"
+    factory TimeFormatter.dateOnly() => _DateOnlyFormatter();
+
+    /// Day name formatter.
+    ///
+    /// Example: "Mon", "Tue"
+    factory TimeFormatter.dayName() => _DayNameFormatter();
+
+    /// Custom formatter using a format pattern.
+    ///
+    /// Note:
+    /// - This is a lightweight implementation
+    /// - Does NOT depend on `intl`
+    /// - Supports a limited set of common patterns
+    factory TimeFormatter.custom(String pattern) =>
+    _CustomTimeFormatter(pattern);
+}
+
+/// ---------------------------------------------------------------------------
+/// SHARED CONSTANTS
+/// ---------------------------------------------------------------------------
+
+/// Month name abbreviations (US locale)
 const _monthNames = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec'
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 
-/// Crosshair datetime formatter for "DD ShortMonth, YY HH:MM AM/PM" format
+/// ---------------------------------------------------------------------------
+/// CROSSHAIR FORMATTER
+/// ---------------------------------------------------------------------------
+///
+/// Dedicated formatter for crosshair tooltips.
+///
+/// Format:
+///   DD Mon, YY HH:MM AM/PM
+///
+/// Example:
+///   "15 Jan, 25 10:42 PM"
+///
+/// This formatter:
+/// - Ignores [TimeFormatContext]
+/// - Always shows full precision
+/// - Is designed for inspection, not axis labels
 class CrosshairTimeFormatter implements TimeFormatter {
-  /// Default constructor
-  const CrosshairTimeFormatter();
+    const CrosshairTimeFormatter();
 
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    final day = date.day;
-    final month = _monthNames[date.month - 1];
-    final year = date.year.toString().substring(2); // Last 2 digits of year
-    final hour = date.hour;
-    final minute = date.minute.toString().padLeft(2, '0');
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
 
-    // Convert to 12-hour format with AM/PM
-    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final amPm = hour < 12 ? 'AM' : 'PM';
+        final day = date.day;
+        final month = _monthNames[date.month - 1];
+        final year = date.year.toString().substring(2);
 
-    return '$day $month, $year $hour12:$minute $amPm';
-  }
+        final hour = date.hour;
+        final minute = date.minute.toString().padLeft(2, '0');
+
+        // Convert to 12-hour clock
+        final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+        final amPm = hour < 12 ? 'AM' : 'PM';
+
+        return '$day $month, $year $hour12:$minute $amPm';
+    }
 }
 
-/// Responsive time formatter - adjusts format based on visible time range
-/// TradingView-style: adapts format based on zoom level with proper date/time display
+/// ---------------------------------------------------------------------------
+/// RESPONSIVE TIME FORMATTER (CORE LOGIC)
+/// ---------------------------------------------------------------------------
+///
+/// Implements TradingView-style adaptive time formatting.
+///
+/// Formatting rules depend on:
+/// - Total visible time span
+/// - Label position (first / last get more info)
+///
+/// This formatter is INTERNAL and should not be used directly.
+/// Public access is via [TimeFormatter.smart].
 class _ResponsiveTimeFormatter implements TimeFormatter {
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
 
-    // If no context provided, use default hour:minute format
-    if (context == null) {
-      return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    }
-
-    final span = context.visibleTimeSpan;
-    final isFirstOrLast = context.isFirstLabel || context.isLastLabel;
-    final day = date.day;
-    final month = date.month;
-    final year = date.year;
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-
-    // Format selection based on time span (TradingView-style logic)
-    if (span.inDays >= 365) {
-      // Years: Show year only (e.g., "2025", "2024")
-      return year.toString();
-    } else if (span.inDays >= 90) {
-      // 3+ months: First/Last show "MMM YYYY", middle shows "MMM" (e.g., "Dec 2025", "Jan")
-      if (isFirstOrLast) {
-        return '${_monthNames[month - 1]} $year';
-      } else {
-        return _monthNames[month - 1];
-      }
-    } else if (span.inDays >= 30) {
-      // 1-3 months: First/Last show "DD MMM YYYY", middle shows "DD MMM" (e.g., "15 Jan 2025", "15 Jan")
-      if (isFirstOrLast) {
-        // For first/last, show full date with year if span is large enough
-        if (span.inDays >= 60) {
-          return '$day ${_monthNames[month - 1]} $year';
-        } else {
-          return '$day ${_monthNames[month - 1]}'; // Use short month names consistently
+        // No context → fallback to HH:MM
+        if (context == null) {
+            return '${date.hour.toString().padLeft(2, '0')}:'
+            '${date.minute.toString().padLeft(2, '0')}';
         }
-      } else {
-        return '$day ${_monthNames[month - 1]}';
-      }
-    } else if (span.inDays >= 7) {
-      // 1-4 weeks: Show "DD MMM" format (e.g., "15 Jan", "25 June")
-      return '$day ${_monthNames[month - 1]}';
-    } else if (span.inDays >= 1) {
-      // 1-7 days: First/Last show "DD MMM HH:MM", middle shows "HH:MM" (e.g., "15 Jan 22:50", "22:50")
-      if (isFirstOrLast) {
-        return '$day ${_monthNames[month - 1]} $hour:$minute';
-      } else {
-        return '$hour:$minute';
-      }
-    } else if (span.inHours >= 1) {
-      // 1-24 hours: First/Last show "DD MMM HH:MM", middle shows "HH:MM" (e.g., "15 Jan 22:50", "22:50")
-      if (isFirstOrLast) {
-        return '$day ${_monthNames[month - 1]} $hour:$minute';
-      } else {
-        return '$hour:$minute';
-      }
-    } else {
-      // Less than 1 hour: First/Last show "DD MMM HH:MM:SS", middle shows "HH:MM:SS"
-      final second = date.second.toString().padLeft(2, '0');
-      if (isFirstOrLast) {
-        return '$day ${_monthNames[month - 1]} $hour:$minute:$second';
-      } else {
-        return '$hour:$minute:$second';
-      }
+
+        final span = context.visibleTimeSpan;
+        final isEdge = context.isFirstLabel || context.isLastLabel;
+
+        final day = date.day;
+        final month = date.month;
+        final year = date.year;
+
+        final hour = date.hour.toString().padLeft(2, '0');
+        final minute = date.minute.toString().padLeft(2, '0');
+
+        // === YEAR SCALE ===
+        if (span.inDays >= 365) {
+            return year.toString();
+        }
+
+        // === MONTH SCALE (3+ months) ===
+        if (span.inDays >= 90) {
+            return isEdge
+                ? '${_monthNames[month - 1]} $year'
+                : _monthNames[month - 1];
+        }
+
+        // === DATE SCALE (1–3 months) ===
+        if (span.inDays >= 30) {
+            return isEdge && span.inDays >= 60
+                ? '$day ${_monthNames[month - 1]} $year'
+                : '$day ${_monthNames[month - 1]}';
+        }
+
+        // === WEEK SCALE ===
+        if (span.inDays >= 7) {
+            return '$day ${_monthNames[month - 1]}';
+        }
+
+        // === DAY / HOUR SCALE ===
+        if (span.inDays >= 1 || span.inHours >= 1) {
+            return isEdge
+                ? '$day ${_monthNames[month - 1]} $hour:$minute'
+                : '$hour:$minute';
+        }
+
+        // === MINUTE / SECOND SCALE ===
+        final second = date.second.toString().padLeft(2, '0');
+        return isEdge
+            ? '$day ${_monthNames[month - 1]} $hour:$minute:$second'
+            : '$hour:$minute:$second';
     }
-  }
 }
 
-/// Legacy smart time formatter - kept for backward compatibility
-/// Now uses responsive formatter internally
+/// ---------------------------------------------------------------------------
+/// LEGACY SMART FORMATTER
+/// ---------------------------------------------------------------------------
+///
+/// Kept for backward compatibility.
+///
+/// Internally delegates to [_ResponsiveTimeFormatter] when context is available.
 class _SmartTimeFormatter implements TimeFormatter {
-  final _ResponsiveTimeFormatter _responsive = _ResponsiveTimeFormatter();
+    final _ResponsiveTimeFormatter _responsive = _ResponsiveTimeFormatter();
 
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    // If context provided, use responsive formatter
-    if (context != null) {
-      return _responsive.format(timestamp, context: context);
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        if (context != null) {
+            return _responsive.format(timestamp, context: context);
+        }
+
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+        return '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
     }
-    // Otherwise, default to hour:minute
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
 }
 
-/// Hour:Minute formatter
+/// ---------------------------------------------------------------------------
+/// SIMPLE FORMATTERS
+/// ---------------------------------------------------------------------------
+
+/// Hour:Minute formatter (24-hour clock)
 class _HourMinuteFormatter implements TimeFormatter {
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-/// Full date time formatter
-class _DateTimeFormatter implements TimeFormatter {
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} '
-        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-/// Date only formatter
-class _DateOnlyFormatter implements TimeFormatter {
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-}
-
-/// Day name formatter
-class _DayNameFormatter implements TimeFormatter {
-  static const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    return _dayNames[date.weekday - 1];
-  }
-}
-
-/// Custom formatter using DateFormat pattern (requires intl package)
-class _CustomTimeFormatter implements TimeFormatter {
-  final String pattern;
-
-  _CustomTimeFormatter(this.pattern);
-
-  @override
-  String format(int timestamp, {TimeFormatContext? context}) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
-    // Basic implementation - can be enhanced with intl package for full DateFormat support
-    // For now, provide common patterns manually
-    if (pattern == 'MM/dd/yyyy') {
-      return '${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}/${date.year}';
-    } else if (pattern == 'dd/MM/yyyy') {
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-    } else if (pattern == 'HH:mm:ss') {
-      return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}:${date.second.toString().padLeft(2, '0')}';
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+        return '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
     }
-    // Fallback to default
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
+}
+
+/// Full date + time formatter
+class _DateTimeFormatter implements TimeFormatter {
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+        return '${date.year}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')} '
+        '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+    }
+}
+
+/// Date-only formatter
+class _DateOnlyFormatter implements TimeFormatter {
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+        return '${date.year}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+    }
+}
+
+/// Day-of-week formatter
+class _DayNameFormatter implements TimeFormatter {
+    static const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+        return _dayNames[date.weekday - 1];
+    }
+}
+
+/// ---------------------------------------------------------------------------
+/// CUSTOM FORMATTER
+/// ---------------------------------------------------------------------------
+///
+/// Lightweight custom formatter without intl dependency.
+///
+/// Supports a small subset of common patterns.
+/// Falls back safely when pattern is unknown.
+class _CustomTimeFormatter implements TimeFormatter {
+    final String pattern;
+
+    _CustomTimeFormatter(this.pattern);
+
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+
+        if (pattern == 'MM/dd/yyyy') {
+            return '${date.month.toString().padLeft(2, '0')}/'
+            '${date.day.toString().padLeft(2, '0')}/${date.year}';
+        } else if (pattern == 'dd/MM/yyyy') {
+            return '${date.day.toString().padLeft(2, '0')}/'
+            '${date.month.toString().padLeft(2, '0')}/${date.year}';
+        } else if (pattern == 'HH:mm:ss') {
+            return '${date.hour.toString().padLeft(2, '0')}:'
+            '${date.minute.toString().padLeft(2, '0')}:'
+            '${date.second.toString().padLeft(2, '0')}';
+        }
+
+        // Fallback
+        return '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+    }
+}
+
+/// Default **const-safe** time formatter used by [TimeLabelStyle].
+///
+/// This formatter is designed to:
+/// - Be usable inside `const` constructors
+/// - Support **responsive formatting** when [TimeFormatContext] is provided
+/// - Mimic TradingView-style adaptive time labels
+///
+/// Behavior:
+/// - If [context] is `null`:
+///   → Falls back to simple `HH:mm` format
+/// - If [context] is provided:
+///   → Adapts formatting based on visible time span and label position
+///
+/// This formatter is intentionally duplicated (instead of reusing
+/// `_ResponsiveTimeFormatter`) to:
+/// - Preserve const compatibility
+/// - Avoid runtime allocations
+/// - Keep style defaults lightweight and deterministic
+class DefaultTimeFormatter implements TimeFormatter {
+    /// Const constructor for use in const widget/style trees
+    const DefaultTimeFormatter();
+
+    /// Month name abbreviations (US format).
+    ///
+    /// Duplicated here instead of reused from another file
+    /// because:
+    /// - Static const is required for const-safe formatting
+    /// - Avoids indirect dependencies
+    static const _monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+    ];
+
+    @override
+    String format(int timestamp, {TimeFormatContext? context}) {
+        // Convert seconds since epoch → DateTime
+        final date = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+
+        // If no context is available, use a safe default
+        // This keeps behavior predictable when formatter is used standalone
+        if (context == null) {
+            return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        }
+
+        // Responsive formatting based on visible time span
+        final span = context.visibleTimeSpan;
+        final isFirstOrLast = context.isFirstLabel || context.isLastLabel;
+
+        final day = date.day;
+        final month = date.month;
+        final year = date.year;
+        final hour = date.hour.toString().padLeft(2, '0');
+        final minute = date.minute.toString().padLeft(2, '0');
+
+        // === TradingView-style adaptive formatting ===
+
+        // Very large ranges → show year only
+        if (span.inDays >= 365) {
+            return year.toString();
+        }
+
+        // Multi-month ranges → emphasize first/last labels
+        else if (span.inDays >= 90) {
+            return isFirstOrLast
+                ? '${_monthNames[month - 1]} $year'
+                : _monthNames[month - 1];
+        }
+
+        // Monthly ranges → show day + month, optionally year
+        else if (span.inDays >= 30) {
+            if (isFirstOrLast) {
+                return span.inDays >= 60
+                    ? '$day ${_monthNames[month - 1]} $year'
+                    : '$day ${_monthNames[month - 1]}';
+            } else {
+                return '$day ${_monthNames[month - 1]}';
+            }
+        }
+
+        // Weekly ranges → date only
+        else if (span.inDays >= 7) {
+            return '$day ${_monthNames[month - 1]}';
+        }
+
+        // Daily ranges → mix date and time
+        else if (span.inDays >= 1 || span.inHours >= 1) {
+            return isFirstOrLast
+                ? '$day ${_monthNames[month - 1]} $hour:$minute'
+                : '$hour:$minute';
+        }
+
+        // Intraday / very small ranges → include seconds
+        else {
+            final second = date.second.toString().padLeft(2, '0');
+            return isFirstOrLast
+                ? '$day ${_monthNames[month - 1]} $hour:$minute:$second'
+                : '$hour:$minute:$second';
+        }
+    }
 }

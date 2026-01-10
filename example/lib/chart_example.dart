@@ -2,9 +2,36 @@ import 'dart:math' as math;
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:imp_trading_chart/imp_trading_chart.dart'
-    show Candle, dummy, parseCandlesFromPayload, ImpChart;
+import 'package:imp_trading_chart/imp_trading_chart.dart' show Candle, ImpChart;
 
+/// Simulation modes used to stress-test the chart engine.
+///
+/// Each mode targets a different numerical domain:
+/// - [low]    → extreme precision (very small floating-point values)
+/// - [medium] → standard trading ranges
+/// - [high]   → very large values (millions to billions)
+/// - [mixed]  → worst-case scenario with range switching
+enum SimulationMode {
+  /// 0.00000000000000000000001 → 0.1
+  low,
+
+  /// $0 → $100,000
+  medium,
+
+  /// $0 → $1,000,000,000
+  high,
+
+  /// Mixed ranges (low + medium + high)
+  mixed,
+}
+
+/// Main example screen showcasing ImpChart factory constructors.
+///
+/// This widget demonstrates:
+/// - Live OHLC candle generation
+/// - Real-time updates
+/// - Multiple chart styles via factory methods
+/// - Handling of extreme numeric ranges
 class ChartExampleScreen extends StatefulWidget {
   const ChartExampleScreen({super.key});
 
@@ -12,33 +39,51 @@ class ChartExampleScreen extends StatefulWidget {
   State<ChartExampleScreen> createState() => _ChartExampleScreenState();
 }
 
-enum SimulationMode {
-  low, // 0.00000000000000000000001 - 0.1
-  medium, // $0 - $100K
-  high, // $0 - $1B
-  mixed, // Mixed: any type of data (very low, normal, extreme high)
-}
-
 class _ChartExampleScreenState extends State<ChartExampleScreen>
     with SingleTickerProviderStateMixin {
+  // ===========================================================================
+  // STATE & CONTROLLERS
+  // ===========================================================================
+
+  /// Current candle data rendered by the charts
   List<Candle> _candles = [];
+
+  /// Random generator used for deterministic price simulation
   final Random _random = Random();
+
+  /// Currently active simulation mode
   SimulationMode? _simulationMode;
+
+  /// Live update flags (mutually exclusive)
   bool _isLiveLow = false;
   bool _isLiveMedium = false;
   bool _isLiveHigh = false;
   bool _isLiveMixed = false;
+
+  /// Controls the chart-style tabs
   late TabController _tabController;
+
+  // ===========================================================================
+  // LIFECYCLE
+  // ===========================================================================
+
   @override
   void initState() {
     super.initState();
+
+    /// Four tabs:
+    /// Trading | Simple | Compact | Minimal
     _tabController = TabController(length: 4, vsync: this);
+
+    /// Rebuild UI when switching chart style
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         setState(() {});
       }
     });
-    // Don't generate initial candles - start empty
+
+    /// ❗ No candles are generated initially
+    /// User must explicitly select a simulation mode
   }
 
   @override
@@ -47,80 +92,90 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     super.dispose();
   }
 
+  // ===========================================================================
+  // INITIAL CANDLE GENERATION
+  // ===========================================================================
+
+  /// Generates an initial candle set for the selected simulation mode.
+  ///
+  /// Characteristics:
+  /// - Generates exactly **500 candles**
+  /// - Uses **percentage-based volatility**
+  /// - Produces realistic OHLC relationships
+  /// - Uses **integer timestamps only (seconds)**
   void _generateCandlesForMode(SimulationMode mode) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final candles = <Candle>[];
 
-    // Generate 500 candles based on simulation mode
+    double minPrice;
     double maxPrice;
     double startPrice;
     double volatilityPercent;
-    double minPrice;
 
     switch (mode) {
       case SimulationMode.low:
-        minPrice = 0.00000000000000000000001; // Very small starting point
+        minPrice = 0.00000000000000000000001;
         maxPrice = 0.1;
-        startPrice = 0.01; // Start at 0.01 (1 cent equivalent)
-        volatilityPercent = 0.05; // 5% volatility for small values
+        startPrice = 0.01;
+        volatilityPercent = 0.05;
         break;
+
       case SimulationMode.medium:
         minPrice = 0.01;
-        maxPrice = 100000.0; // $100K
+        maxPrice = 100000.0;
         startPrice = 1000.0;
-        volatilityPercent = 0.02; // 2% volatility
+        volatilityPercent = 0.02;
         break;
+
       case SimulationMode.high:
         minPrice = 0.01;
-        maxPrice = 1000000000.0; // $1B
-        startPrice = 10000000.0; // $10M
-        volatilityPercent = 0.015; // 1.5% volatility
+        maxPrice = 1000000000.0;
+        startPrice = 10000000.0;
+        volatilityPercent = 0.015;
         break;
+
       case SimulationMode.mixed:
-        // Mixed mode: randomly switches between low, medium, and high ranges
         minPrice = 0.00000000000000000000001;
-        maxPrice = 1000000000.0; // Can go up to $1B
-        startPrice = 100.0; // Start in middle range
-        volatilityPercent = 0.03; // Moderate volatility
+        maxPrice = 1000000000.0;
+        startPrice = 100.0;
+        volatilityPercent = 0.03;
         break;
     }
 
     double price = startPrice;
-
-    // For mixed mode, we'll randomly jump between different ranges
-    bool inMixedMode = mode == SimulationMode.mixed;
+    final bool isMixedMode = mode == SimulationMode.mixed;
 
     for (int i = 0; i < 500; i++) {
-      final time = now - (500 - i) * 60; // 1 minute intervals
+      final time = now - (500 - i) * 60; // 1-minute candles
 
-      // For mixed mode, occasionally jump to a different price range
-      if (inMixedMode && i > 0 && i % 100 == 0) {
-        final segment = _random.nextInt(3);
-        switch (segment) {
-          case 0: // Low range
+      /// Mixed mode periodically jumps between ranges
+      if (isMixedMode && i > 0 && i % 100 == 0) {
+        switch (_random.nextInt(3)) {
+          case 0:
             price = _random.nextDouble() * 0.1 + 0.0001;
             break;
-          case 1: // Medium range
-            price = _random.nextDouble() * 100000.0 + 100.0;
+          case 1:
+            price = _random.nextDouble() * 100000 + 100;
             break;
-          case 2: // High range
-            price = _random.nextDouble() * 1000000000.0 + 1000000.0;
+          case 2:
+            price = _random.nextDouble() * 1000000000 + 1000000;
             break;
         }
         price = price.clamp(minPrice, maxPrice * 1.1);
       }
 
-      // Random walk with percentage-based volatility
+      /// Percentage-based random walk
       final changePercent =
-          (_random.nextDouble() - 0.5) * 2.0 * volatilityPercent;
-      final change = price * changePercent;
+          (_random.nextDouble() - 0.5) * 2 * volatilityPercent;
 
       final open = price;
-      final close = (price + change).clamp(minPrice, maxPrice * 1.1);
+      final close =
+          (price + price * changePercent).clamp(minPrice, maxPrice * 1.1);
 
-      // Generate realistic high/low that are above/below open and close
+      /// Ensure realistic wick sizes
       final candleRange =
           math.max((close - open).abs(), price * volatilityPercent * 0.5);
+
       final high =
           math.max(open, close) + _random.nextDouble() * candleRange * 0.5;
       final low =
@@ -143,6 +198,11 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     });
   }
 
+  // ===========================================================================
+  // LIVE SIMULATION CONTROL
+  // ===========================================================================
+
+  /// Resets chart state and stops all simulations.
   void _resetChart() {
     setState(() {
       _candles = [];
@@ -154,110 +214,37 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     });
   }
 
-  /// Load dummy data from candle.dart and display it in the chart
-  void _loadDummyData() {
-    try {
-      debugPrint('Starting to load dummy data...');
-
-      // Cast dummy to proper type for access
-      final dummyMap = dummy as Map<String, dynamic>;
-
-      // Verify dummy data structure
-      if (dummyMap['data'] == null ||
-          (dummyMap['data'] as Map<String, dynamic>)['chart_data'] == null) {
-        debugPrint(
-            'Error: Dummy data structure is invalid - missing data.chart_data');
-        return;
-      }
-
-      final chartDataList =
-          (dummyMap['data'] as Map<String, dynamic>)['chart_data'] as List;
-      debugPrint('Found ${chartDataList.length} items in chart_data');
-
-      if (chartDataList.isEmpty) {
-        debugPrint('Warning: chart_data is empty');
-        return;
-      }
-
-      // Parse the dummy data payload into List<Candle>
-      final candles = parseCandlesFromPayload(dummyMap);
-
-      // Validate that we got candles
-      if (candles.isEmpty) {
-        debugPrint('Warning: Dummy data parsed but resulted in empty list');
-        return;
-      }
-
-      // Sort candles by time (ascending) to ensure proper chart rendering
-      // Charts expect data to be sorted chronologically
-      final sortedCandles = List<Candle>.from(candles)
-        ..sort((a, b) => a.time.compareTo(b.time));
-
-      debugPrint(
-          '✓ Successfully loaded ${sortedCandles.length} candles from dummy data');
-      debugPrint(
-          '  First candle: time=${sortedCandles.first.time}, close=${sortedCandles.first.close}');
-      debugPrint(
-          '  Last candle: time=${sortedCandles.last.time}, close=${sortedCandles.last.close}');
-
-      final minPrice =
-          sortedCandles.map((c) => c.low).reduce((a, b) => a < b ? a : b);
-      final maxPrice =
-          sortedCandles.map((c) => c.high).reduce((a, b) => a > b ? a : b);
-      debugPrint('  Price range: $minPrice - $maxPrice');
-
-      setState(() {
-        _candles = sortedCandles;
-        _simulationMode = null; // Clear simulation mode since this is real data
-        // Stop any live updates
-        _isLiveLow = false;
-        _isLiveMedium = false;
-        _isLiveHigh = false;
-        _isLiveMixed = false;
-      });
-    } catch (e, stackTrace) {
-      // Handle any parsing errors gracefully with full error details
-      debugPrint('✗ Error loading dummy data: $e');
-      debugPrint('Stack trace: $stackTrace');
-    }
-  }
-
+  /// Latest candle close price (used by charts & stats bar)
   double? get _currentPrice => _candles.isNotEmpty ? _candles.last.close : null;
 
+  /// Toggles live updates for the selected simulation mode.
+  ///
+  /// - Ensures only ONE live mode is active
+  /// - Generates candles if switching modes
   void _toggleLive(SimulationMode mode) {
     setState(() {
-      // Turn off all other live modes
       _isLiveLow = false;
       _isLiveMedium = false;
       _isLiveHigh = false;
       _isLiveMixed = false;
 
-      // Toggle the selected mode
       switch (mode) {
         case SimulationMode.low:
           _isLiveLow = !_isLiveLow;
-          if (_candles.isEmpty || _simulationMode != mode) {
-            _generateCandlesForMode(mode);
-          }
           break;
         case SimulationMode.medium:
           _isLiveMedium = !_isLiveMedium;
-          if (_candles.isEmpty || _simulationMode != mode) {
-            _generateCandlesForMode(mode);
-          }
           break;
         case SimulationMode.high:
           _isLiveHigh = !_isLiveHigh;
-          if (_candles.isEmpty || _simulationMode != mode) {
-            _generateCandlesForMode(mode);
-          }
           break;
         case SimulationMode.mixed:
           _isLiveMixed = !_isLiveMixed;
-          if (_candles.isEmpty || _simulationMode != mode) {
-            _generateCandlesForMode(mode);
-          }
           break;
+      }
+
+      if (_candles.isEmpty || _simulationMode != mode) {
+        _generateCandlesForMode(mode);
       }
     });
 
@@ -270,6 +257,13 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     }
   }
 
+  /// Performs recursive live price updates.
+  ///
+  /// Behavior:
+  /// - Runs every 500ms
+  /// - Updates current candle if timestamp matches
+  /// - Creates a new candle otherwise
+  /// - Preserves OHLC integrity
   void _startLiveUpdates(SimulationMode mode) {
     Future.delayed(const Duration(milliseconds: 500), () {
       final isLive = (mode == SimulationMode.low && _isLiveLow) ||
@@ -301,92 +295,63 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
             maxPrice = 1000000000.0;
             break;
           case SimulationMode.mixed:
-            // Mixed mode uses adaptive volatility based on current price
-            if (currentPrice < 1.0) {
-              volatilityPercent = 0.05; // High volatility for small values
+            if (currentPrice < 1) {
+              volatilityPercent = 0.05;
               maxPrice = 0.1;
-            } else if (currentPrice < 10000.0) {
-              volatilityPercent = 0.03; // Moderate volatility for medium values
-              maxPrice = 100000.0;
+            } else if (currentPrice < 10000) {
+              volatilityPercent = 0.03;
+              maxPrice = 100000;
             } else {
-              volatilityPercent = 0.02; // Lower volatility for large values
-              maxPrice = 1000000000.0;
+              volatilityPercent = 0.02;
+              maxPrice = 1000000000;
             }
             break;
         }
 
         final changePercent =
-            (_random.nextDouble() - 0.5) * 2.0 * volatilityPercent;
-        final priceChange = currentPrice * changePercent;
-        double minPriceValue =
-            mode == SimulationMode.low || mode == SimulationMode.mixed
-                ? 0.00000000000000000000001
-                : 0.01;
-        final newPrice =
-            (currentPrice + priceChange).clamp(minPriceValue, maxPrice * 1.1);
-
-        // For mixed mode, occasionally jump to a completely different range
-        if (mode == SimulationMode.mixed && _random.nextDouble() < 0.02) {
-          // 2% chance
-          final segment = _random.nextInt(3);
-          double jumpPrice;
-          switch (segment) {
-            case 0: // Jump to low range
-              jumpPrice = _random.nextDouble() * 0.09 + 0.001;
-              break;
-            case 1: // Jump to medium range
-              jumpPrice = _random.nextDouble() * 90000.0 + 100.0;
-              break;
-            case 2: // Jump to high range
-              jumpPrice = _random.nextDouble() * 900000000.0 + 1000000.0;
-              break;
-            default:
-              jumpPrice = newPrice;
-          }
-          // Use the jump price if it's significantly different
-          if ((jumpPrice - newPrice).abs() / math.max(newPrice, 1.0) > 0.5) {
-            // Keep using newPrice but this gives us the option to jump in future updates
-          }
-        }
+            (_random.nextDouble() - 0.5) * 2 * volatilityPercent;
+        final newPrice = (currentPrice + currentPrice * changePercent).clamp(
+          mode == SimulationMode.low || mode == SimulationMode.mixed
+              ? 0.00000000000000000000001
+              : 0.01,
+          maxPrice * 1.1,
+        );
 
         if (lastCandle.time == newTime) {
-          // Update existing candle - properly update high/low
-          final updatedHigh = math.max(lastCandle.high, newPrice);
-          final updatedLow = math.min(lastCandle.low, newPrice);
-
           _candles[_candles.length - 1] = Candle(
             time: lastCandle.time,
             open: lastCandle.open,
-            high: updatedHigh,
-            low: updatedLow,
+            high: math.max(lastCandle.high, newPrice),
+            low: math.min(lastCandle.low, newPrice),
             close: newPrice,
           );
         } else {
-          // New candle - create with proper high/low
-          final candleRange = math.max((newPrice - lastCandle.close).abs(),
-              currentPrice * volatilityPercent * 0.5);
-          final high = math.max(lastCandle.close, newPrice) +
-              _random.nextDouble() * candleRange * 0.3;
-          final low = math.min(lastCandle.close, newPrice) -
-              _random.nextDouble() * candleRange * 0.3;
-
           _candles.add(Candle(
             time: newTime,
             open: lastCandle.close,
-            high: high,
-            low: low,
+            high: math.max(lastCandle.close, newPrice),
+            low: math.min(lastCandle.close, newPrice),
             close: newPrice,
           ));
         }
       });
 
-      if (isLive) {
-        _startLiveUpdates(mode);
-      }
+      _startLiveUpdates(mode);
     });
   }
 
-  /// Format price for display in stats bar (uses compact format for large values)
+  /// Formats a price value for display in the stats bar.
+  ///
+  /// Uses compact, human-readable notation for large numbers:
+  /// - ≥ 1B → Billion (B)
+  /// - ≥ 1M → Million (M)
+  /// - ≥ 1K → Thousand (K)
+  /// - Otherwise → fixed decimal currency
+  ///
+  /// Examples:
+  /// - 1250        → $1.25K
+  /// - 2500000     → $2.50M
+  /// - 9876543210  → $9.88B
   String _formatPriceForDisplay(double price) {
     final absPrice = price.abs();
     final sign = price < 0 ? '-' : '';
@@ -406,6 +371,10 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E27),
+
+      // =========================================================================
+      // APP BAR + CHART STYLE TABS
+      // =========================================================================
       appBar: AppBar(
         title: const Text(
           'Chart Factory Methods',
@@ -419,8 +388,10 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
           indicatorColor: Colors.cyan,
           labelColor: Colors.cyan,
           unselectedLabelColor: Colors.white54,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
           tabs: const [
             Tab(text: '🎯 Trading'),
             Tab(text: '📊 Simple'),
@@ -429,15 +400,23 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
           ],
         ),
       ),
+
+      // =========================================================================
+      // MAIN CONTENT
+      // =========================================================================
       body: Column(
         children: [
-          // Simulation Controls Panel
+          // ---------------------------------------------------------------------
+          // SIMULATION CONTROLS PANEL
+          // ---------------------------------------------------------------------
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F3A),
               border: Border(
-                bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                bottom: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
               ),
             ),
             child: Column(
@@ -452,6 +431,8 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                /// Simulation mode buttons (mutually exclusive)
                 Row(
                   children: [
                     Expanded(
@@ -490,48 +471,29 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Column(
-                      spacing: 8,
-                      children: [
-                        GestureDetector(
-                          onTap: _loadDummyData,
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.blue.withValues(alpha: 0.5),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.new_releases_outlined,
-                              color: Colors.blue,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        _buildResetButton(),
-                      ],
-                    ),
+                    _buildResetButton(),
                   ],
                 ),
               ],
             ),
           ),
 
-          // Stats Bar
+          // ---------------------------------------------------------------------
+          // STATS BAR (LIVE METRICS)
+          // ---------------------------------------------------------------------
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F3A),
               border: Border(
-                bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                bottom: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
               ),
             ),
             child: Row(
               children: [
+                /// Scrollable stats to handle small screens
                 Flexible(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -573,12 +535,16 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
                     ),
                   ),
                 ),
+
+                /// LIVE indicator badge
                 if (_isLiveLow || _isLiveMedium || _isLiveHigh || _isLiveMixed)
                   Padding(
                     padding: const EdgeInsets.only(left: 12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
@@ -612,7 +578,9 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
             ),
           ),
 
-          // Chart Content
+          // ---------------------------------------------------------------------
+          // CHART CONTENT AREA
+          // ---------------------------------------------------------------------
           Expanded(
             child: _candles.isEmpty
                 ? Center(
@@ -658,6 +626,7 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Returns the active simulation mode label for the LIVE indicator.
   String _getModeLabel() {
     if (_isLiveLow) return 'LOW';
     if (_isLiveMedium) return 'MEDIUM';
@@ -666,8 +635,18 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     return '';
   }
 
+  /// Builds a simulation control button.
+  ///
+  /// Behavior:
+  /// - Starts or pauses live simulation
+  /// - Highlights active and selected states
+  /// - Enforces single active simulation mode
   Widget _buildSimulationButton(
-      String label, SimulationMode mode, Color color, bool isActive) {
+    String label,
+    SimulationMode mode,
+    Color color,
+    bool isActive,
+  ) {
     final isLive = (mode == SimulationMode.low && _isLiveLow) ||
         (mode == SimulationMode.medium && _isLiveMedium) ||
         (mode == SimulationMode.high && _isLiveHigh);
@@ -713,6 +692,14 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Builds the reset button used to clear the chart state.
+  ///
+  /// Resets:
+  /// - Candle data
+  /// - Active simulation mode
+  /// - Live update flags
+  ///
+  /// Visually styled as a destructive action (red) to indicate reset behavior.
   Widget _buildResetButton() {
     return InkWell(
       onTap: _resetChart,
@@ -736,6 +723,14 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Builds a single statistic item used in the stats bar.
+  ///
+  /// Displays:
+  /// - An icon
+  /// - A short label
+  /// - A highlighted value
+  ///
+  /// Designed to be compact and horizontally scrollable for small screens.
   Widget _buildStatItem({
     required IconData icon,
     required String label,
@@ -772,13 +767,25 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Builds the full-featured trading chart example.
+  ///
+  /// Features:
+  /// - Crosshair interaction
+  /// - Current price indicator
+  /// - Rich layout styling
+  /// - Higher visible candle count
+  ///
+  /// Intended to showcase the most powerful ImpChart configuration.
   Widget _buildTradingChart() {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF0F0F11),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyan.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: Colors.cyan.withValues(alpha: 0.3),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.cyan.withValues(alpha: 0.1),
@@ -790,6 +797,7 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -825,6 +833,8 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
               ],
             ),
           ),
+
+          /// Chart
           Expanded(
             child: ImpChart.trading(
               candles: _candles,
@@ -838,18 +848,29 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Builds a simple chart configuration.
+  ///
+  /// Features:
+  /// - Clean line rendering
+  /// - Price & time labels
+  /// - No advanced interactions
+  ///
+  /// Ideal for lightweight analytics views.
   Widget _buildSimpleChart() {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF0F0F11),
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: Colors.green.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: Colors.green.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -885,6 +906,8 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
               ],
             ),
           ),
+
+          /// Chart
           Expanded(
             child: ImpChart.simple(
               candles: _candles,
@@ -897,18 +920,29 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Builds a compact chart optimized for dense layouts.
+  ///
+  /// Features:
+  /// - Reduced spacing
+  /// - Smaller visible range
+  /// - Lightweight visuals
+  ///
+  /// Ideal for dashboards and summary views.
   Widget _buildCompactChart() {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF0F0F11),
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: Colors.orange.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -944,6 +978,8 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
               ],
             ),
           ),
+
+          /// Chart
           Expanded(
             child: ImpChart.compact(
               candles: _candles,
@@ -957,17 +993,29 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
     );
   }
 
+  /// Builds an ultra-minimal chart configuration.
+  ///
+  /// Features:
+  /// - No labels
+  /// - No grid
+  /// - No animations
+  ///
+  /// Designed for sparkline-style visualizations.
   Widget _buildMinimalChart() {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF0F0F11),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.pink.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: Colors.pink.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// Header
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -1003,6 +1051,8 @@ class _ChartExampleScreenState extends State<ChartExampleScreen>
               ],
             ),
           ),
+
+          /// Chart
           Expanded(
             child: ImpChart.minimal(
               candles: _candles,
