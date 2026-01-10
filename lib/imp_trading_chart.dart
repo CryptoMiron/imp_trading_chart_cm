@@ -54,6 +54,7 @@ library;
 /// Users are expected to prepare and aggregate data
 /// before passing it to the chart.
 export 'src/data/candle.dart';
+export 'src/data/enums.dart';
 
 
 /// ─────────────────────────────────────────────────────────

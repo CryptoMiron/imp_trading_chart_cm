@@ -25,6 +25,7 @@ import '../theme/trading_colors.dart';
 /// - Immutable
 /// - Serializable
 /// - Safe for hot reload & diff-based repaint checks
+@immutable
 class Candle {
   /// Unix timestamp (seconds OR milliseconds – must be consistent)
   final int time;
@@ -312,4 +313,30 @@ class Candle {
       'changePercent': changePercent.formatNumWithPos(),
     };
   }
+
+  // ===========================================================================
+  // EQUALITY & HASHING
+  // ===========================================================================
+
+  /// Value equality comparison for candles.
+  ///
+  /// Two candles are equal if all their OHLC data and timestamp match.
+  /// This enables:
+  /// - Reliable change detection in widget updates
+  /// - Proper list comparisons
+  /// - Efficient rebuild optimization
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Candle &&
+          runtimeType == other.runtimeType &&
+          time == other.time &&
+          open == other.open &&
+          high == other.high &&
+          low == other.low &&
+          close == other.close &&
+          volume == other.volume;
+
+  @override
+  int get hashCode => Object.hash(time, open, high, low, close, volume);
 }

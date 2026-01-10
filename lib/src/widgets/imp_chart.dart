@@ -613,12 +613,16 @@ class _ImpChartState extends State<ImpChart>
 
         _rippleTimer = Timer.periodic(
             Duration(milliseconds: totalCycleMs),
-            (_) {
-                if (mounted &&
-                    widget.candles.isNotEmpty &&
-                    widget.style.rippleStyle.show) {
-                    _playRippleAnimation();
+            (timer) {
+                // CRITICAL FIX: Cancel timer if conditions become invalid
+                // This prevents memory leaks and unnecessary processing
+                if (!mounted ||
+                    widget.candles.isEmpty ||
+                    !widget.style.rippleStyle.show) {
+                    timer.cancel();
+                    return;
                 }
+                _playRippleAnimation();
             },
         );
     }

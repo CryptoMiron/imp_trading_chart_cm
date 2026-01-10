@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:imp_trading_chart/imp_trading_chart.dart' show Candle;
 
 /// ─────────────────────────────────────────────────────────────
@@ -27,11 +28,12 @@ import 'package:imp_trading_chart/imp_trading_chart.dart' show Candle;
 ///   → Scale based on HIGH / LOW prices
 ///   → Ensures wicks are fully visible
 ///
-/// - **Auto-scale**
+///- **Auto-scale**
 ///   → Adds symmetric padding above and below
 ///
 /// - **Single data point**
 ///   → Centers vertically with visually pleasing margins
+@immutable
 class PriceScale {
   /// Minimum visible price (after padding).
   final double min;

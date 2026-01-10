@@ -57,6 +57,7 @@ import 'package:flutter/material.dart';
 /// - This class contains **NO rendering logic**
 /// - It is safe to expose publicly
 /// - Equality is overridden so painters can efficiently detect changes
+@immutable
 class ChartLayout {
   /// Padding around the **chart content area**.
   ///
