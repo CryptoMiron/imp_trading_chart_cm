@@ -1,7 +1,8 @@
 # imp_trading_chart
 
 <p align="center">
-  <img src="screenshots/pub/professinal_crop.jpg" width="420"/>
+  <img src="screenshots/pub/professional_crop.jpg" width="360"/>
+  <img src="screenshots/real.jpg" width="360"/>
 </p>
 
 <p align="center">
@@ -46,12 +47,18 @@ Built specifically for:
 
 <p align="center">
   <img src="screenshots/pub/sunset_crop.jpg" width="220"/>
-  <img src="screenshots/pub/professinal_crop.jpg" width="220"/>
+  <img src="screenshots/pub/professional_crop.jpg" width="220"/>
 </p>
 
 ---
 
 ## 🎬 Live Interaction Demos
+
+### 🌎 Real App Integration
+
+<p align="center">
+  <img src="screenshots/gifs/real_crosshair.gif" width="300"/>
+</p>
 
 ### ▶️ Full Market Simulation
 
