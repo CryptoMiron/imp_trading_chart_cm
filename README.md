@@ -83,11 +83,11 @@ Built specifically for:
 ## 📊 Chart Variants
 
 <p align="center">
-  <img src="screenshots/cyber.jpg" width="200"/>
-  <img src="screenshots/glass.jpg" width="200"/>
-  <img src="screenshots/aurora.jpg" width="200"/>
-  <img src="screenshots/sunset.jpg" width="200"/>
-  <img src="screenshots/professional.jpg" width="200"/>
+  <img src="screenshots/cyber.jpg" width="150"/>
+  <img src="screenshots/glass.jpg" width="150"/>
+  <img src="screenshots/aurora.jpg" width="150"/>
+  <img src="screenshots/sunset.jpg" width="150"/>
+  <img src="screenshots/professional.jpg" width="150"/>
 </p>
 
 <p align="center">
