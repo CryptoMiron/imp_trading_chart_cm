@@ -1,0 +1,13 @@
+# Screenshots & media (GitHub only)
+screenshots/
+screenshots/**
+
+# Videos & gifs
+*.gif
+*.mp4
+*.mov
+
+# Design assets
+*.psd
+*.fig
+*.xd

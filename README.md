@@ -1,44 +1,115 @@
 # imp_trading_chart
 
-A **high-performance trading chart engine for Flutter**, inspired by
-TradingView Lightweight Charts.
+<p align="center">
+  <img src="screenshots/pub/professional_crop.jpg" width="420"/>
+</p>
 
-`imp_trading_chart` is designed as a **rendering engine**, not a widget tree.
-It is optimized for **large datasets**, **real-time updates**, and **smooth
-pan & zoom**, while keeping the public API minimal and stable.
+<p align="center">
+  <b>A high-performance trading chart engine for Flutter</b><br/>
+  Inspired by TradingView Lightweight Charts
+</p>
 
----
-
-## ✨ Key Features
-
-- ⚡ CustomPainter-based rendering (no widget candles)
-- 📈 Viewport-driven drawing (only visible data is rendered)
-- 🧮 Index-based timestamps (no DateTime math in painter)
-- 🧠 Cached price scale & coordinate mapping
-- 🧩 Clean separation: **Data → Engine → Rendering**
-- 🖐 Pan, zoom, double-tap gestures
-- 🪟 Multiple chart instances supported
-- 🎨 Fully customizable styling & layout
-- 🚀 Designed for large datasets (10k+ candles)
+<p align="center">
+  <a href="https://pub.dev/packages/imp_trading_chart">
+    <img src="https://img.shields.io/pub/v/imp_trading_chart.svg">
+  </a>
+  <a href="https://github.com/rahul-cse-25/imp_trading_chart">
+    <img src="https://img.shields.io/github/stars/rahul-cse-25/imp_trading_chart?style=social">
+  </a>
+</p>
 
 ---
 
-## 🧠 Design Philosophy
+## 🚀 Overview
 
-This package intentionally avoids:
-- Widget-per-candle rendering
-- DateTime calculations in the render loop
-- Rebuilding UI for every data change
+`imp_trading_chart` is a **rendering-first trading chart engine** for Flutter.
 
-Instead, it follows a **chart engine architecture**:
+It is **not a widget-heavy chart**, but a **CustomPainter + viewport-driven engine**
+designed for **performance, precision, and scalability**.
+
+Built specifically for:
+
+* 📈 Financial & stock market apps
+* 💹 Crypto & trading platforms
+* ⚡ Real-time price feeds
+* 🧠 Large datasets (10k+ candles)
+
+---
+
+## ✨ Visual Themes & Styles
+
+<p align="center">
+  <img src="screenshots/pub/aurora_crop.jpg" width="220"/>
+  <img src="screenshots/pub/cyber_crop.jpg" width="220"/>
+  <img src="screenshots/pub/glass_crop.jpg" width="220"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/pub/sunset_crop.jpg" width="220"/>
+  <img src="screenshots/pub/professional_crop.jpg" width="220"/>
+</p>
+
+---
+
+## 🎬 Live Interaction Demos
+
+### ▶️ Full Market Simulation
+
+<p align="center">
+  <img src="screenshots/gifs/sim.gif" width="300"/>
+</p>
+
+### ✋ Drag / Pan Viewport
+
+<p align="center">
+  <img src="screenshots/gifs/point_drag.gif" width="300"/>
+</p>
+
+### 🔍 Pinch-to-Zoom
+
+<p align="center">
+  <img src="screenshots/gifs/pinch.gif" width="300"/>
+</p>
+
+---
+
+## 📊 Chart Variants
+
+<p align="center">
+  <img src="screenshots/sim_trade.jpg" width="200"/>
+  <img src="screenshots/sim_simple.jpg" width="200"/>
+  <img src="screenshots/sim_compact.jpg" width="200"/>
+  <img src="screenshots/sim_minimal.jpg" width="200"/>
+</p>
+
+| Variant | Use Case                         |
+| ------- | -------------------------------- |
+| Trading | Full-featured professional chart |
+| Simple  | Clean chart with labels          |
+| Compact | Dashboards & lists               |
+| Minimal | Sparklines & previews            |
+
+---
+
+## 🧠 Engine-First Architecture
 
 ```
-Data (List<Candle>)
-   ↓
-Chart Engine (viewport, scaling, mapping)
-   ↓
-Rendering Layer (CustomPainter)
+Candle Data (List<Candle>)
+        ↓
+ChartEngine (viewport, scaling, mapping)
+        ↓
+CustomPainter (pixels only)
 ```
+
+### Why this matters
+
+* ❌ No widget-per-candle
+* ❌ No DateTime math in render loop
+* ❌ No unnecessary rebuilds
+
+✅ Only **visible candles** are processed
+✅ Pan & zoom are **O(1)** operations
+✅ Perfect for **live trading data**
 
 ---
 
@@ -54,64 +125,35 @@ dependencies:
 ## 🚀 Basic Usage
 
 ```dart
-import 'package:imp_trading_chart/imp_chart.dart';
-
-ImpChart(
+ImpChart.trading(
   candles: candles,
-  style: ChartStyle(
-    bullishColor: Colors.green,
-    bearishColor: Colors.red,
-  ),
+  currentPrice: candles.last.close,
+  showCrosshair: true,
+  defaultVisibleCount: 200,
 );
 ```
 
 ---
 
-## 📊 Candle Model
+## 🕯 Candle Model
 
 ```dart
 Candle(
-  timestamp: 0,
+  time: 1700000000,
   open: 100,
   high: 120,
   low: 90,
   close: 110,
-  volume: 500,
 );
 ```
 
-> ⚠️ The chart engine does **not** perform time aggregation.
-> Data should be prepared before passing to the chart.
-
----
-
-## 🎨 Styling & Layout
-
-### ChartStyle
-```dart
-ChartStyle(
-  bullishColor: Colors.green,
-  bearishColor: Colors.red,
-  gridColor: const Color(0xFF2A2A2A),
-  backgroundColor: const Color(0xFF0E0E0E),
-  wickWidth: 1,
-  candleSpacing: 2,
-);
-```
-
-### ChartLayout
-```dart
-ChartLayout(
-  priceAxisWidth: 60,
-  timeAxisHeight: 24,
-);
-```
+> ⚠️ The engine does **not** aggregate data.
 
 ---
 
 ## 🧪 Example App
 
-A complete runnable example is included in the `example/` folder.
+A complete interactive demo is included in the `example/` folder.
 
 ```bash
 cd example
@@ -122,33 +164,32 @@ flutter run
 
 ## 📚 Documentation
 
-- Quick Reference: [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
-- Architecture & Internals: [DOCUMENTATION.md](DOCUMENTATION.md)
+* 📘 Architecture & Internals → `DOCUMENTATION.md`
+* ⚡ Quick API Guide → `QUICK_REFERENCE.md`
 
 ---
 
-## 🔒 Public API vs Internals
+## 🔒 Public API Stability
 
-Only the following are part of the **public API**:
+Only these are public & stable:
 
-- `ImpChart`
-- `Candle`
-- `ChartStyle`
-- `ChartLayout`
-- `LabelStyles`
-
-All engine internals are intentionally hidden to allow future optimizations
-without breaking users.
+* `ImpChart`
+* `Candle`
+* `ChartStyle`
+* `ChartLayout`
+* `LabelStyles`
 
 ---
 
 ## 🚧 Roadmap
 
-- Public `ChartController` API
+* Public `ChartController`
+* Programmatic zoom / pan API
+* Indicator overlays (MA, EMA, VWAP)
 
 ---
 
 ## 📄 License
 
-MIT License  
+MIT License
 © Rahul Prajapati
