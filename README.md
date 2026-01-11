@@ -1,7 +1,7 @@
 # imp_trading_chart
 
 <p align="center">
-  <img src="screenshots/pub/professional_crop.jpg" width="420"/>
+  <img src="screenshots/pub/professinal_crop.jpg" width="420"/>
 </p>
 
 <p align="center">
@@ -46,7 +46,7 @@ Built specifically for:
 
 <p align="center">
   <img src="screenshots/pub/sunset_crop.jpg" width="220"/>
-  <img src="screenshots/pub/professional_crop.jpg" width="220"/>
+  <img src="screenshots/pub/professinal_crop.jpg" width="220"/>
 </p>
 
 ---
