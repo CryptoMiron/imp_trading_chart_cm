@@ -42,7 +42,7 @@ class TradingColors {
   /// - Loss states
   ///
   /// Vibrant red ensures immediate visual recognition.
-  static const Color bearish = Color(0xFFFF2B3A);
+  static const Color bearish = Color(0xFFD85750);
 
   /// Neutral color for unchanged or non-directional values.
   ///

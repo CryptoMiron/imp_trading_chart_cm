@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 /// ---------------------------------------------------------------------------
 /// TIME FORMAT CONTEXT
 /// ---------------------------------------------------------------------------
@@ -12,6 +14,7 @@
 /// - Zoomed out → show years / months
 /// - Zoomed in → show hours / seconds
 /// - First & last labels often include more information
+@immutable
 class TimeFormatContext {
   /// Total duration covered by the currently visible candles
   ///
@@ -66,6 +69,7 @@ class TimeFormatContext {
 ///   ),
 /// )
 /// ```
+@immutable
 abstract class TimeFormatter {
   /// Formats a timestamp (seconds since epoch) into a display string.
   ///
@@ -151,6 +155,7 @@ const _monthNames = [
 /// - Ignores [TimeFormatContext]
 /// - Always shows full precision
 /// - Is designed for inspection, not axis labels
+@immutable
 class CrosshairTimeFormatter implements TimeFormatter {
   const CrosshairTimeFormatter();
 
@@ -185,6 +190,7 @@ class CrosshairTimeFormatter implements TimeFormatter {
 ///
 /// This formatter is INTERNAL and should not be used directly.
 /// Public access is via [TimeFormatter.smart].
+@immutable
 class _ResponsiveTimeFormatter implements TimeFormatter {
   @override
   String format(int timestamp, {TimeFormatContext? context}) {
@@ -252,6 +258,7 @@ class _ResponsiveTimeFormatter implements TimeFormatter {
 /// Kept for backward compatibility.
 ///
 /// Internally delegates to [_ResponsiveTimeFormatter] when context is available.
+@immutable
 class _SmartTimeFormatter implements TimeFormatter {
   final _ResponsiveTimeFormatter _responsive = _ResponsiveTimeFormatter();
 
@@ -272,6 +279,7 @@ class _SmartTimeFormatter implements TimeFormatter {
 /// ---------------------------------------------------------------------------
 
 /// Hour:Minute formatter (24-hour clock)
+@immutable
 class _HourMinuteFormatter implements TimeFormatter {
   @override
   String format(int timestamp, {TimeFormatContext? context}) {
@@ -282,6 +290,7 @@ class _HourMinuteFormatter implements TimeFormatter {
 }
 
 /// Full date + time formatter
+@immutable
 class _DateTimeFormatter implements TimeFormatter {
   @override
   String format(int timestamp, {TimeFormatContext? context}) {
@@ -295,6 +304,7 @@ class _DateTimeFormatter implements TimeFormatter {
 }
 
 /// Date-only formatter
+@immutable
 class _DateOnlyFormatter implements TimeFormatter {
   @override
   String format(int timestamp, {TimeFormatContext? context}) {
@@ -306,6 +316,7 @@ class _DateOnlyFormatter implements TimeFormatter {
 }
 
 /// Day-of-week formatter
+@immutable
 class _DayNameFormatter implements TimeFormatter {
   static const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -324,10 +335,11 @@ class _DayNameFormatter implements TimeFormatter {
 ///
 /// Supports a small subset of common patterns.
 /// Falls back safely when pattern is unknown.
+@immutable
 class _CustomTimeFormatter implements TimeFormatter {
   final String pattern;
 
-  _CustomTimeFormatter(this.pattern);
+  const _CustomTimeFormatter(this.pattern);
 
   @override
   String format(int timestamp, {TimeFormatContext? context}) {
@@ -369,6 +381,7 @@ class _CustomTimeFormatter implements TimeFormatter {
 /// - Preserve const compatibility
 /// - Avoid runtime allocations
 /// - Keep style defaults lightweight and deterministic
+@immutable
 class DefaultTimeFormatter implements TimeFormatter {
   /// Const constructor for use in const widget/style trees
   const DefaultTimeFormatter();

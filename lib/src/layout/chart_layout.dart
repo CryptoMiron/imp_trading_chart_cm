@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 
 /// ---------------------------------------------------------------------------
 /// CHART LAYOUT MODEL
@@ -58,6 +59,7 @@ import 'package:flutter/material.dart';
 /// - It is safe to expose publicly
 /// - Equality is overridden so painters can efficiently detect changes
 @immutable
+@internal
 class ChartLayout {
   /// Padding around the **chart content area**.
   ///

@@ -18,6 +18,7 @@ import 'package:imp_trading_chart/src/data/enums.dart' show LineStyle;
 /// - Clear price direction (bullish / bearish)
 /// - Consistent alignment with Y-axis labels
 /// - Optional visibility for minimal charts
+@immutable
 class CurrentPriceIndicatorStyle {
   /// Whether to draw the horizontal price line.
   ///

@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:imp_trading_chart/imp_trading_chart.dart';
 
 import 'main_navigation_screen.dart';
 
@@ -86,10 +89,122 @@ class ChartExampleApp extends StatelessWidget {
       ),
 
       /// Main entry screen with navigation options
-      home: const MainNavigationScreen(),
+      home: const QuickStartScreen(),
 
       /// Debug banner intentionally disabled for clean visuals
       debugShowCheckedModeBanner: false,
     );
+  }
+}
+
+/// ─────────────────────────────────────────────────────────────
+/// ⚡ QUICK START SCREEN (Optimized for pub.dev "Example" tab)
+/// ─────────────────────────────────────────────────────────────
+///
+/// This provides a zero-setup, copy-pasteable example of how to
+/// use [ImpChart] in any Flutter application.
+class QuickStartScreen extends StatelessWidget {
+  const QuickStartScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D0F16),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ImpChart Quick Start',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Minimal setup, high-performance rendering.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              /// THE CHART COMPONENT
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161922),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ImpChart(
+                    /// 1. Provide your data
+                    candles: _generateSampleData(),
+
+                    /// 2. Choose a pre-defined style (or customize)
+                    style: ChartStyle.trading(
+                      backgroundColor: Colors.transparent,
+                    ).copyWith(
+                      lineStyle: const LineChartStyle(
+                          color: TradingColors.bullish,
+                          smooth: true,
+                          showGlow: true,
+                          glowWidth: 1.5),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              /// NAVIGATION TO FULL SHOWCASE
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MainNavigationScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.explore_outlined),
+                  label: const Text('Explore Full Showcase Gallery'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white10,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Self-contained sample data generator for the Quick Start.
+  List<Candle> _generateSampleData() {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    double price = 150.0;
+    return List.generate(100, (i) {
+      price += (math.Random().nextDouble() - 0.5) * 5;
+      return Candle(
+        time: now - (100 - i) * 3600,
+        open: price,
+        high: price + 2,
+        low: price - 2,
+        close: price,
+      );
+    });
   }
 }

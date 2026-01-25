@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:imp_trading_chart/imp_trading_chart.dart' show Candle;
 import 'package:imp_trading_chart/src/engine/chart_viewport.dart'
     show ChartViewport;
@@ -37,6 +38,7 @@ import 'package:imp_trading_chart/src/math/coordinate_mapper.dart'
 ///   → full price range visibility
 ///
 /// This choice is controlled by [_useCloseOnlyPriceScale].
+@internal
 class ChartEngine {
   /// Immutable candle dataset.
   ///

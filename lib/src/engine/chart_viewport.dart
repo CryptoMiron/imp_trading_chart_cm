@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show immutable;
+import 'package:meta/meta.dart';
 
 /// ─────────────────────────────────────────────────────────────
 /// 🪟 ChartViewport
@@ -32,6 +32,7 @@ import 'package:flutter/foundation.dart' show immutable;
 /// All chart operations (pan, zoom, scale) operate by
 /// modifying this window — never the underlying data.
 @immutable
+@internal
 class ChartViewport {
   /// Index of the FIRST visible candle (inclusive).
   ///
@@ -233,6 +234,7 @@ class ChartViewport {
 /// - Describe visible candle bounds
 /// - Iterate efficiently without allocations
 @immutable
+@internal
 class Range {
   final int start;
   final int end;

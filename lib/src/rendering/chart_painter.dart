@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 import 'package:imp_trading_chart/imp_trading_chart.dart'
     show Candle, ChartStyle;
 import 'package:imp_trading_chart/src/data/enums.dart' show LineStyle;
@@ -73,6 +74,7 @@ class _LabelInfo {
 /// - Extremely fast repaint cycles
 /// - Predictable rendering behavior
 /// - Easy debugging and extensibility
+@internal
 class ChartPainter extends CustomPainter {
   /// Visible candles only (already clipped by viewport)
   final List<Candle> candles;

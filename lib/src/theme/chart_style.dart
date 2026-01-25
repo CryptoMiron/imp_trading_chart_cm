@@ -40,6 +40,7 @@ import 'package:imp_trading_chart/src/layout/chart_layout.dart'
 /// - Makes the chart **fully customizable**
 /// - Allows safe public API exposure
 /// - Enables performant repaint detection via equality
+@immutable
 class ChartStyle {
   // ============================================================================
   // CORE VISUAL PROPERTIES

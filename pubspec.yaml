@@ -2,7 +2,7 @@ name: imp_trading_chart
 description: >
   A high-performance trading chart engine for Flutter with CustomPainter rendering, optimized for large datasets, real-time updates, and smooth pan & zoom.
 
-version: 0.1.1
+version: 0.1.2
 
 homepage: https://github.com/rahul-cse-25/imp_trading_chart
 
@@ -22,6 +22,7 @@ environment:
   flutter: ">=3.10.0"
 
 dependencies:
+  meta: ^1.16.0
   flutter:
     sdk: flutter
 

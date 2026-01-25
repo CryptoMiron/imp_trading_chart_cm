@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show immutable;
+import 'package:meta/meta.dart';
 import 'package:imp_trading_chart/src/engine/chart_viewport.dart'
     show ChartViewport;
 import 'package:imp_trading_chart/src/engine/price_scale.dart' show PriceScale;
@@ -36,6 +36,7 @@ import 'package:imp_trading_chart/src/engine/price_scale.dart' show PriceScale;
 ///
 /// This class bridges all three safely.
 @immutable
+@internal
 class CoordinateMapper {
   /// Current viewport describing visible candle range.
   final ChartViewport viewport;

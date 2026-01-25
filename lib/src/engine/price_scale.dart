@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show immutable;
+import 'package:meta/meta.dart';
 import 'package:imp_trading_chart/imp_trading_chart.dart' show Candle;
 
 /// ─────────────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ import 'package:imp_trading_chart/imp_trading_chart.dart' show Candle;
 /// - **Single data point**
 ///   → Centers vertically with visually pleasing margins
 @immutable
+@internal
 class PriceScale {
   /// Minimum visible price (after padding).
   final double min;

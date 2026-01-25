@@ -202,7 +202,19 @@ Only these are public & stable:
 
 ---
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to get started, project structure, and our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+For a deep dive into the engine's internals, check out [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## 📌 Stability & Versioning
+
+This project follows [Semantic Versioning (semver)](https://semver.org/).
+
+- **v0.x.x**: Public API is considered stable but minor breaking changes may occur in minor versions while we approach 1.0.
+- **Internal APIs**: Everything under `lib/src/` is considered internal and is not part of the stable public API. Use with caution.
+
 ## 📄 License
 
-MIT License
-© Rahul Prajapati
+MIT License. See [LICENSE](LICENSE) for details.

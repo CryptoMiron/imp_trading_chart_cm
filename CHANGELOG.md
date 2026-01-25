@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.2
+
+### Added
+- Created `CONTRIBUTING.md` with project guidelines and PR process
+- Added `CODE_OF_CONDUCT.md` (Contributor Covenant)
+- Added `ARCHITECTURE.md` explaining engine-first design and rendering pipeline
+- Improved README with Contributing and Stability & Versioning sections
+
+### Documentation & Hygiene
+- Marked internal classes in `lib/src/` as internal implementation details
+- Enhanced example app with helpful comments for future contributors
+- **No breaking changes** - Behavior and public APIs remain fully stable
+
 ## 0.1.1
 
 ### Fixed

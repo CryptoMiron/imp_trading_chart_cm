@@ -131,7 +131,12 @@ class NeonCyberpunkChart extends StatelessWidget {
           // Chart
           Expanded(
             child: ImpChart(
+              // CONTRIBUTOR TIP: The candles are generated randomly for this showcase.
+              // In a real app, you would pass your actual trading data here.
               candles: _generateVolatileData(75),
+
+              // SAFE TO EXPERIMENT: Feel free to tweak colors and styles here
+              // to see how the engine handles different visual configurations.
               style: ChartStyle(
                 backgroundColor: Colors.transparent,
                 lineStyle: const LineChartStyle(

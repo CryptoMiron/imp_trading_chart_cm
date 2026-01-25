@@ -18,6 +18,7 @@ import 'package:imp_trading_chart/src/data/enums.dart' show LineStyle;
 /// - Entirely **stateless configuration**
 /// - Painter decides *when* to draw, this decides *how*
 /// - Immutable for safe repaint comparison
+@immutable
 class CrosshairStyle {
   /// Whether the crosshair should be rendered at all.
   ///

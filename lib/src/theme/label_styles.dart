@@ -20,6 +20,7 @@ import 'package:imp_trading_chart/imp_trading_chart.dart';
 /// - Immutable (safe for repaint comparisons)
 /// - Cheap equality checks (used in `shouldRepaint`)
 /// - Declarative configuration → imperative rendering
+@immutable
 class LineChartStyle {
   /// Color of the chart line.
   ///
@@ -251,6 +252,7 @@ class LineChartStyle {
 /// Rendering behavior:
 /// - Labels are generated based on visible price range
 /// - Positions are evenly distributed unless spacing is overridden
+@immutable
 class PriceLabelStyle {
   /// Whether price labels should be rendered.
   final bool show;
@@ -353,6 +355,7 @@ class PriceLabelStyle {
 /// - Context-aware (zoom level)
 /// - Responsive to visible time span
 /// - Usually fewer to avoid collisions
+@immutable
 class TimeLabelStyle {
   final bool show;
   final double fontSize;
@@ -425,6 +428,7 @@ class TimeLabelStyle {
 /// - Grid visibility
 /// - Grid density
 /// - Label offsets
+@immutable
 class AxisStyle {
   /// Whether grid lines should be drawn.
   final bool showGrid;

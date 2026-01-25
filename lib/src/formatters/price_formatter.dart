@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 /// ---------------------------------------------------------------------------
 /// PRICE FORMATTER API
 /// ---------------------------------------------------------------------------
@@ -27,6 +29,7 @@
 ///   ),
 /// )
 /// ```
+@immutable
 abstract class PriceFormatter {
   /// Formats a numeric price value into a human-readable string.
   ///
@@ -128,6 +131,7 @@ abstract class PriceFormatter {
 /// This allows breaking internal changes without breaking public API.
 
 /// Smart formatter that adapts precision automatically.
+@immutable
 class _SmartPriceFormatter implements PriceFormatter {
   @override
   String format(double price) {
@@ -157,10 +161,11 @@ class _SmartPriceFormatter implements PriceFormatter {
 /// Fixed decimal formatter.
 ///
 /// Always outputs exactly [decimals] digits after decimal point.
+@immutable
 class _FixedPriceFormatter implements PriceFormatter {
   final int decimals;
 
-  _FixedPriceFormatter(this.decimals);
+  const _FixedPriceFormatter(this.decimals);
 
   @override
   String format(double price) {
@@ -171,10 +176,11 @@ class _FixedPriceFormatter implements PriceFormatter {
 /// Percentage formatter.
 ///
 /// Converts ratio to percentage.
+@immutable
 class _PercentagePriceFormatter implements PriceFormatter {
   final int decimals;
 
-  _PercentagePriceFormatter(this.decimals);
+  const _PercentagePriceFormatter(this.decimals);
 
   @override
   String format(double price) {
@@ -183,11 +189,12 @@ class _PercentagePriceFormatter implements PriceFormatter {
 }
 
 /// Currency formatter with symbol.
+@immutable
 class _CurrencyPriceFormatter implements PriceFormatter {
   final String symbol;
   final int decimals;
 
-  _CurrencyPriceFormatter(this.symbol, this.decimals);
+  const _CurrencyPriceFormatter(this.symbol, this.decimals);
 
   @override
   String format(double price) {
@@ -198,10 +205,11 @@ class _CurrencyPriceFormatter implements PriceFormatter {
 /// Compact numeric formatter.
 ///
 /// Converts large values into K / M / B notation.
+@immutable
 class _CompactPriceFormatter implements PriceFormatter {
   final int decimals;
 
-  _CompactPriceFormatter(this.decimals);
+  const _CompactPriceFormatter(this.decimals);
 
   @override
   String format(double price) {
@@ -226,11 +234,12 @@ class _CompactPriceFormatter implements PriceFormatter {
 /// - Currency symbol
 /// - Compact suffixes
 /// - Sign handling
+@immutable
 class _CurrencyCompactPriceFormatter implements PriceFormatter {
   final String symbol;
   final int decimals;
 
-  _CurrencyCompactPriceFormatter(this.symbol, this.decimals);
+  const _CurrencyCompactPriceFormatter(this.symbol, this.decimals);
 
   @override
   String format(double price) {
@@ -279,6 +288,7 @@ class _CurrencyCompactPriceFormatter implements PriceFormatter {
 /// - Always uses `$` symbol
 /// - Always uses 2 decimal places
 /// - Negative values preserve sign
+@immutable
 class DefaultPriceFormatter implements PriceFormatter {
   /// Const constructor for use in const widget/style trees
   const DefaultPriceFormatter();
