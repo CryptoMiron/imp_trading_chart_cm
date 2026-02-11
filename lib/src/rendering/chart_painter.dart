@@ -69,6 +69,15 @@ double resolveCurrentPriceMarkerBackgroundLeft({
   return safeMinLabelLeft;
 }
 
+@visibleForTesting
+double resolveCurrentPriceMarkerBackgroundWidth({
+  required double chartRight,
+  required double canvasWidth,
+}) {
+  final safeMinLabelLeft = chartRight > canvasWidth ? canvasWidth : chartRight;
+  return (canvasWidth - safeMinLabelLeft).clamp(0.0, canvasWidth).toDouble();
+}
+
 List<double> buildAdaptivePriceTicks({
   required double minPrice,
   required double maxPrice,
@@ -1333,10 +1342,10 @@ class ChartPainter extends CustomPainter {
     final labelPaddingH = currentPriceStyle.labelPaddingH.clamp(2.0, 6.0);
     final labelPaddingV = currentPriceStyle.labelPaddingV;
 
-    final naturalLabelWidth = textPainter.width + (labelPaddingH * 2);
-    final maxLabelWidth =
-        (size.width - safeMinLabelLeft).clamp(0.0, size.width);
-    final labelWidth = naturalLabelWidth.clamp(0.0, maxLabelWidth).toDouble();
+    final labelWidth = resolveCurrentPriceMarkerBackgroundWidth(
+      chartRight: safeMinLabelLeft,
+      canvasWidth: size.width,
+    );
     final labelHeight = textPainter.height + (labelPaddingV * 2);
 
     final bgStartX = resolveCurrentPriceMarkerBackgroundLeft(

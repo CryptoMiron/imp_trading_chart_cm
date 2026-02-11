@@ -25,6 +25,14 @@ void main() {
     expect(left, 744);
   });
 
+  test('current price marker background reaches right chart edge', () {
+    final width = resolveCurrentPriceMarkerBackgroundWidth(
+      chartRight: 744,
+      canvasWidth: 800,
+    );
+    expect(width, 56);
+  });
+
   test('current price marker border radius is zero', () {
     expect(currentPriceMarkerBorderRadius, 0);
   });
