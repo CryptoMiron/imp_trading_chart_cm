@@ -15,7 +15,7 @@ import 'package:imp_trading_chart/src/engine/chart_engine.dart'
 import 'package:imp_trading_chart/src/engine/chart_viewport.dart'
     show ChartViewport;
 import 'package:imp_trading_chart/src/rendering/chart_painter.dart'
-    show ChartPainter;
+    show ChartPainter, buildAdaptivePriceTicks;
 
 /// ─────────────────────────────────────────────────────────
 /// 🧩 ImpChart
@@ -961,18 +961,23 @@ class _ImpChartState extends State<ImpChart>
 
       double maxLabelWidth = 0.0;
 
-      // Measure ALL price labels to find the widest one
-      //
-      // We sample evenly across the price range
-      // to avoid missing large formatted values.
-      final labelCount = priceLabelStyle.labelCount;
-      for (int i = 0; i <= labelCount; i++) {
-        final price = scale.max - ((scale.max - scale.min) * i / labelCount);
-        final priceText = formatter.format(price);
+      // Measure a stable width template to prevent y-axis jitter while prices
+      // update (same character count => same measured width).
+      final ticks = buildAdaptivePriceTicks(
+        minPrice: scale.min,
+        maxPrice: scale.max,
+        targetCount: priceLabelStyle.labelCount,
+      );
+      for (final price in ticks) {
+        final rawText = formatter.format(price);
+        final priceText = _stableDigitTemplate(rawText);
 
         textPainter.text = TextSpan(
           text: priceText,
-          style: TextStyle(fontSize: labelFontSize),
+          style: TextStyle(
+            fontSize: labelFontSize,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         );
         textPainter.layout();
 
@@ -995,13 +1000,16 @@ class _ImpChartState extends State<ImpChart>
         final currentPrice = widget.currentPrice ?? _engine.getLatestPrice();
 
         if (currentPrice != null) {
-          final currentPriceText = formatter.format(currentPrice);
+          final currentPriceText = _stableDigitTemplate(
+            formatter.format(currentPrice),
+          );
 
           textPainter.text = TextSpan(
             text: currentPriceText,
             style: TextStyle(
               fontSize: currentPriceStyle.labelFontSize,
               fontWeight: FontWeight.bold,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           );
           textPainter.layout();
@@ -1065,6 +1073,10 @@ class _ImpChartState extends State<ImpChart>
           ? xAxisAreaHeight
           : layout.chartDataPadding.bottom,
     );
+  }
+
+  String _stableDigitTemplate(String text) {
+    return text.replaceAll(RegExp(r'\d'), '8');
   }
 
   @override

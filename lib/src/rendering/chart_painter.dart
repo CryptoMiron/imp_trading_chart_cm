@@ -53,27 +53,72 @@ class _LabelInfo {
   });
 }
 
-@immutable
-class CurrentPriceMarkerHorizontalLayout {
-  final double left;
-  final double width;
-
-  const CurrentPriceMarkerHorizontalLayout({
-    required this.left,
-    required this.width,
-  });
-}
-
 const double currentPriceMarkerBorderRadius = 0.0;
 
-@visibleForTesting
-CurrentPriceMarkerHorizontalLayout resolveCurrentPriceMarkerHorizontalLayout({
-  required double chartRight,
-  required double canvasWidth,
+List<double> buildAdaptivePriceTicks({
+  required double minPrice,
+  required double maxPrice,
+  required int targetCount,
 }) {
-  final safeLeft = chartRight.clamp(0.0, canvasWidth).toDouble();
-  final width = (canvasWidth - safeLeft).clamp(0.0, canvasWidth).toDouble();
-  return CurrentPriceMarkerHorizontalLayout(left: safeLeft, width: width);
+  if (!minPrice.isFinite || !maxPrice.isFinite || maxPrice <= minPrice) {
+    return const [];
+  }
+
+  final safeTargetCount = targetCount < 2 ? 2 : targetCount;
+  var step = _niceStep((maxPrice - minPrice) / (safeTargetCount - 1));
+
+  List<double> ticks = _ticksInRange(minPrice, maxPrice, step);
+  var guard = 0;
+  while (ticks.length > safeTargetCount + 2 && guard < 6) {
+    step = _niceStep(step * 1.5);
+    ticks = _ticksInRange(minPrice, maxPrice, step);
+    guard++;
+  }
+
+  return ticks;
+}
+
+List<double> _ticksInRange(double minPrice, double maxPrice, double step) {
+  if (!step.isFinite || step <= 0) {
+    return const [];
+  }
+  final start = (minPrice / step).ceilToDouble() * step;
+  final end = (maxPrice / step).floorToDouble() * step;
+  if (start > end) {
+    final center = (minPrice + maxPrice) / 2;
+    return [double.parse(center.toStringAsFixed(8))];
+  }
+
+  final ticks = <double>[];
+  var value = start;
+  var guard = 0;
+  while (value <= end + (step * 0.5) && guard < 1000) {
+    ticks.add(double.parse(value.toStringAsFixed(8)));
+    value += step;
+    guard++;
+  }
+  return ticks;
+}
+
+double _niceStep(double rawStep) {
+  if (!rawStep.isFinite || rawStep <= 0) {
+    return 1;
+  }
+  final exponent = math.pow(10, (math.log(rawStep) / math.ln10).floor());
+  final fraction = rawStep / exponent;
+  double niceFraction;
+  if (fraction <= 1) {
+    niceFraction = 1;
+  } else if (fraction <= 2) {
+    niceFraction = 2;
+  } else if (fraction <= 2.5) {
+    niceFraction = 2.5;
+  } else if (fraction <= 5) {
+    niceFraction = 5;
+  } else {
+    niceFraction = 10;
+  }
+  return niceFraction * exponent;
 }
 
 /// ---------------------------------------------------------------------------
@@ -763,8 +808,6 @@ class ChartPainter extends CustomPainter {
     final priceLabelStyle = style.priceLabelStyle;
     if (!priceLabelStyle.show) return;
 
-    final layout = style.layout;
-
     final labelFontSize = priceLabelStyle.fontSize;
     final labelColor = priceLabelStyle.color;
     final bgColor = priceLabelStyle.backgroundColor ?? style.backgroundColor;
@@ -782,6 +825,7 @@ class ChartPainter extends CustomPainter {
       color: labelColor,
       fontSize: labelFontSize,
       fontWeight: fontWeight,
+      fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
@@ -850,14 +894,19 @@ class ChartPainter extends CustomPainter {
       return;
     }
 
+    final ticks = buildAdaptivePriceTicks(
+      minPrice: scale.min,
+      maxPrice: scale.max,
+      targetCount: labelCount,
+    );
+    if (ticks.isEmpty) {
+      return;
+    }
+
     /// -------------------------------------------------------------------------
     /// NORMAL CASE: MULTIPLE LABELS
     /// -------------------------------------------------------------------------
-    ///
-    /// Prices distributed evenly from max → min
-    for (int i = 0; i < labelCount; i++) {
-      final price =
-          scale.max - ((scale.max - scale.min) * i / (labelCount - 1));
+    for (final price in ticks.reversed) {
       if (!price.isFinite) continue;
 
       final y = mapper.priceToY(price);
@@ -1215,15 +1264,13 @@ class ChartPainter extends CustomPainter {
     final currentPriceStyle = style.currentPriceStyle;
     final layout = style.layout;
     final chartRight = mapper.paddingLeft + mapper.contentWidth;
-    final markerLayout = resolveCurrentPriceMarkerHorizontalLayout(
-      chartRight: chartRight,
-      canvasWidth: size.width,
-    );
+    final minLabelLeft = chartRight + layout.gridToLabelGapY;
     final textStyle = TextStyle(
       color: currentPriceStyle.textColor,
       fontSize: currentPriceStyle.labelFontSize,
       fontWeight: FontWeight.bold,
       letterSpacing: 0.5,
+      fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
     /// -------------------------------------------------------------------------
@@ -1234,7 +1281,7 @@ class ChartPainter extends CustomPainter {
         ..color = currentPriceStyle.lineColor
         ..strokeWidth = currentPriceStyle.lineWidth;
 
-      final lineEndX = markerLayout.left;
+      final lineEndX = minLabelLeft;
 
       _drawStyledLine(
         canvas,
@@ -1266,14 +1313,18 @@ class ChartPainter extends CustomPainter {
     );
     textPainter.layout();
 
+    final labelPaddingH = currentPriceStyle.labelPaddingH.clamp(2.0, 6.0);
     final labelPaddingV = currentPriceStyle.labelPaddingV;
 
-    final labelWidth = markerLayout.width;
+    final naturalLabelWidth = textPainter.width + (labelPaddingH * 2);
+    final maxLabelWidth = (size.width - minLabelLeft).clamp(0.0, size.width);
+    final labelWidth = naturalLabelWidth.clamp(0.0, maxLabelWidth).toDouble();
     final labelHeight = textPainter.height + (labelPaddingV * 2);
 
-    final bgStartX = markerLayout.left;
-    final centeredTextOffset = (labelWidth - textPainter.width) / 2;
-    final textX = bgStartX + (centeredTextOffset < 0 ? 0 : centeredTextOffset);
+    final bgStartX = (size.width - labelWidth).clamp(minLabelLeft, size.width);
+    final rightTextPadding = labelPaddingH;
+    final textX = (bgStartX + labelWidth - textPainter.width - rightTextPadding)
+        .clamp(bgStartX, bgStartX + labelWidth);
 
     double labelY = lineY - labelHeight / 2;
     labelY = labelY.clamp(
