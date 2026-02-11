@@ -1265,6 +1265,8 @@ class ChartPainter extends CustomPainter {
     final layout = style.layout;
     final chartRight = mapper.paddingLeft + mapper.contentWidth;
     final minLabelLeft = chartRight + layout.gridToLabelGapY;
+    final safeMinLabelLeft =
+        minLabelLeft > size.width ? size.width : minLabelLeft;
     final textStyle = TextStyle(
       color: currentPriceStyle.textColor,
       fontSize: currentPriceStyle.labelFontSize,
@@ -1281,7 +1283,7 @@ class ChartPainter extends CustomPainter {
         ..color = currentPriceStyle.lineColor
         ..strokeWidth = currentPriceStyle.lineWidth;
 
-      final lineEndX = minLabelLeft;
+      final lineEndX = safeMinLabelLeft;
 
       _drawStyledLine(
         canvas,
@@ -1317,11 +1319,13 @@ class ChartPainter extends CustomPainter {
     final labelPaddingV = currentPriceStyle.labelPaddingV;
 
     final naturalLabelWidth = textPainter.width + (labelPaddingH * 2);
-    final maxLabelWidth = (size.width - minLabelLeft).clamp(0.0, size.width);
+    final maxLabelWidth =
+        (size.width - safeMinLabelLeft).clamp(0.0, size.width);
     final labelWidth = naturalLabelWidth.clamp(0.0, maxLabelWidth).toDouble();
     final labelHeight = textPainter.height + (labelPaddingV * 2);
 
-    final bgStartX = (size.width - labelWidth).clamp(minLabelLeft, size.width);
+    final bgStartX =
+        (size.width - labelWidth).clamp(safeMinLabelLeft, size.width);
     final rightTextPadding = labelPaddingH;
     final textX = (bgStartX + labelWidth - textPainter.width - rightTextPadding)
         .clamp(bgStartX, bgStartX + labelWidth);
