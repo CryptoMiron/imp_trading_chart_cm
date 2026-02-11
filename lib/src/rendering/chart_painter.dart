@@ -55,6 +55,11 @@ class _LabelInfo {
 
 const double currentPriceMarkerBorderRadius = 0.0;
 
+@visibleForTesting
+double resolveCurrentPriceMarkerLeft(double chartRight) {
+  return chartRight;
+}
+
 List<double> buildAdaptivePriceTicks({
   required double minPrice,
   required double maxPrice,
@@ -65,7 +70,7 @@ List<double> buildAdaptivePriceTicks({
   }
 
   final safeTargetCount = targetCount < 2 ? 2 : targetCount;
-  var step = _niceStep((maxPrice - minPrice) / (safeTargetCount - 1));
+  var step = _niceStep((maxPrice - minPrice) / (safeTargetCount + 1));
 
   List<double> ticks = _ticksInRange(minPrice, maxPrice, step);
   var guard = 0;
@@ -107,13 +112,13 @@ double _niceStep(double rawStep) {
   final exponent = math.pow(10, (math.log(rawStep) / math.ln10).floor());
   final fraction = rawStep / exponent;
   double niceFraction;
-  if (fraction <= 1) {
+  if (fraction < 1.5) {
     niceFraction = 1;
-  } else if (fraction <= 2) {
+  } else if (fraction < 3) {
     niceFraction = 2;
-  } else if (fraction <= 2.5) {
+  } else if (fraction < 4) {
     niceFraction = 2.5;
-  } else if (fraction <= 5) {
+  } else if (fraction < 7) {
     niceFraction = 5;
   } else {
     niceFraction = 10;
@@ -1266,7 +1271,7 @@ class ChartPainter extends CustomPainter {
     final currentPriceStyle = style.currentPriceStyle;
     final layout = style.layout;
     final chartRight = mapper.paddingLeft + mapper.contentWidth;
-    final minLabelLeft = chartRight + layout.gridToLabelGapY;
+    final minLabelLeft = resolveCurrentPriceMarkerLeft(chartRight);
     final safeMinLabelLeft =
         minLabelLeft > size.width ? size.width : minLabelLeft;
     final textStyle = TextStyle(

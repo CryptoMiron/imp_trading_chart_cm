@@ -9,7 +9,12 @@ void main() {
       targetCount: 5,
     );
 
+    expect(ticks.length, greaterThanOrEqualTo(5));
     expect(ticks, containsAllInOrder([67600, 67700, 67800]));
+  });
+
+  test('current price marker starts exactly at chart right edge', () {
+    expect(resolveCurrentPriceMarkerLeft(744), 744);
   });
 
   test('current price marker border radius is zero', () {
