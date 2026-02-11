@@ -800,15 +800,19 @@ class ChartPainter extends CustomPainter {
       }
 
       final chartRight = mapper.paddingLeft + mapper.contentWidth;
-      final labelX = chartRight + layout.yAxisGap + yAxisLabelPadding.left;
+      final totalLabelWidth = textPainter.width + yAxisLabelPadding.horizontal;
+      final labelBgLeft = _resolveRightAxisLabelLeft(
+        size.width,
+        totalLabelWidth,
+      );
+      final labelX = labelBgLeft + yAxisLabelPadding.left;
 
       if (bgColor.a > 0.0) {
-        final paddingH = yAxisLabelPadding.horizontal;
         final paddingV = yAxisLabelPadding.vertical;
         final rect = Rect.fromLTWH(
-          labelX - yAxisLabelPadding.left,
+          labelBgLeft,
           clampedY - textPainter.height / 2 - paddingV,
-          textPainter.width + paddingH,
+          totalLabelWidth,
           textPainter.height + (paddingV * 2),
         );
         canvas.drawRect(rect, bgPaint);
@@ -846,15 +850,19 @@ class ChartPainter extends CustomPainter {
       }
 
       final chartRight = mapper.paddingLeft + mapper.contentWidth;
-      final labelX = chartRight + layout.yAxisGap + yAxisLabelPadding.left;
+      final totalLabelWidth = textPainter.width + yAxisLabelPadding.horizontal;
+      final labelBgLeft = _resolveRightAxisLabelLeft(
+        size.width,
+        totalLabelWidth,
+      );
+      final labelX = labelBgLeft + yAxisLabelPadding.left;
 
       if (bgColor.a > 0.0) {
-        final paddingH = yAxisLabelPadding.horizontal;
         final paddingV = yAxisLabelPadding.vertical;
         final rect = Rect.fromLTWH(
-          labelX - yAxisLabelPadding.left,
+          labelBgLeft,
           clampedY - textPainter.height / 2 - paddingV,
-          textPainter.width + paddingH,
+          totalLabelWidth,
           textPainter.height + (paddingV * 2),
         );
         canvas.drawRect(rect, bgPaint);
@@ -1180,6 +1188,12 @@ class ChartPainter extends CustomPainter {
     final currentPriceStyle = style.currentPriceStyle;
     final layout = style.layout;
     final chartRight = mapper.paddingLeft + mapper.contentWidth;
+    final textStyle = TextStyle(
+      color: currentPriceStyle.textColor,
+      fontSize: currentPriceStyle.labelFontSize,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 0.5,
+    );
 
     /// -------------------------------------------------------------------------
     /// DRAW PRICE LINE (optional)
@@ -1191,10 +1205,17 @@ class ChartPainter extends CustomPainter {
 
       double lineEndX = chartRight;
       if (style.priceLabelStyle.show) {
-        final yAxisLabelPadding = style.priceLabelStyle.padding;
-        final textStartX =
-            chartRight + layout.yAxisGap + yAxisLabelPadding.left;
-        lineEndX = textStartX - layout.gridToLabelGapY;
+        final formatter = style.priceLabelStyle.formatter;
+        final previewText = formatter.format(price);
+        final previewPainter = TextPainter(
+          text: TextSpan(text: previewText, style: textStyle),
+          textDirection: TextDirection.ltr,
+        )..layout();
+
+        final labelWidth =
+            previewPainter.width + (currentPriceStyle.labelPaddingH * 2);
+        final bgStartX = _resolveRightAxisLabelLeft(size.width, labelWidth);
+        lineEndX = bgStartX - layout.gridToLabelGapY;
       }
 
       _drawStyledLine(
@@ -1218,13 +1239,6 @@ class ChartPainter extends CustomPainter {
         ? currentPriceStyle.bullishColor
         : currentPriceStyle.bearishColor;
 
-    final textStyle = TextStyle(
-      color: currentPriceStyle.textColor,
-      fontSize: currentPriceStyle.labelFontSize,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 0.5,
-    );
-
     final priceFormatter = style.priceLabelStyle.formatter;
     final priceText = priceFormatter.format(price);
 
@@ -1241,7 +1255,7 @@ class ChartPainter extends CustomPainter {
     final labelHeight = textPainter.height + (labelPaddingV * 2);
 
     /// Align with Y-axis labels (TradingView behavior)
-    final bgStartX = chartRight + layout.yAxisGap;
+    final bgStartX = _resolveRightAxisLabelLeft(size.width, labelWidth);
     final textX = bgStartX + labelPaddingH;
 
     double labelY = lineY - labelHeight / 2;
@@ -1722,10 +1736,10 @@ class ChartPainter extends CustomPainter {
       pricePainter.layout();
 
       /// Position price label just outside chart content
-      final priceLabelX = mapper.paddingLeft +
-          mapper.contentWidth +
-          style.axisStyle.yAxisPadding +
-          3;
+      final totalPriceLabelWidth = pricePainter.width + (cs.labelPaddingH * 2);
+      final priceLabelX =
+          _resolveRightAxisLabelLeft(size.width, totalPriceLabelWidth) +
+              cs.labelPaddingH;
 
       var priceLabelY = y - pricePainter.height / 2;
 
@@ -1737,9 +1751,9 @@ class ChartPainter extends CustomPainter {
 
       // Background rectangle
       final priceBgRect = Rect.fromLTWH(
-        priceLabelX - cs.labelPaddingH,
+        _resolveRightAxisLabelLeft(size.width, totalPriceLabelWidth),
         priceLabelY - cs.labelPaddingV,
-        pricePainter.width + (cs.labelPaddingH * 2),
+        totalPriceLabelWidth,
         pricePainter.height + (cs.labelPaddingV * 2),
       );
 
@@ -1821,6 +1835,12 @@ class ChartPainter extends CustomPainter {
         Offset(timeLabelX, timeLabelY),
       );
     }
+  }
+
+  double _resolveRightAxisLabelLeft(double canvasWidth, double labelWidth) {
+    final rightPadding = style.layout.yAxisLabelPadding.right;
+    final left = canvasWidth - rightPadding - labelWidth;
+    return left < 0 ? 0 : left;
   }
 
   /// ---------------------------------------------------------------------------
