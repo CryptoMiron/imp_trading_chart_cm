@@ -195,7 +195,7 @@ class ChartPainter extends CustomPainter {
   void _drawCandlestickChart(Canvas canvas) {
     if (candles.isEmpty) return;
 
-    final candleWidth = (mapper.candleWidth * 0.72).clamp(1.0, 28.0);
+    final candleWidth = _candleBodyWidthPxForSlot(mapper.candleWidth);
     final wickWidth = (mapper.candleWidth * 0.12).clamp(1.0, 2.5);
     final wickPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -260,7 +260,9 @@ class ChartPainter extends CustomPainter {
   void _drawOhlcBarChart(Canvas canvas) {
     if (candles.isEmpty) return;
 
-    final tickHalf = (mapper.candleWidth * 0.28).clamp(1.0, 8.0);
+    final tickHalf = (_candleBodyWidthPxForSlot(mapper.candleWidth) * 0.5)
+        .clamp(1.0, mapper.candleWidth / 2)
+        .toDouble();
     final stroke = (mapper.candleWidth * 0.12).clamp(1.0, 2.5);
     final paint = Paint()
       ..style = PaintingStyle.stroke
@@ -1865,4 +1867,26 @@ class ChartPainter extends CustomPainter {
         crosshairPosition != oldDelegate.crosshairPosition ||
         crosshairIndex != oldDelegate.crosshairIndex;
   }
+}
+
+@visibleForTesting
+double candleGapPxForSlot(double slotWidth) {
+  if (slotWidth <= 0) {
+    return 0;
+  }
+  final normalized = ((slotWidth - 6) / 24).clamp(0.0, 1.0).toDouble();
+  return 2 + (2 * normalized);
+}
+
+@visibleForTesting
+double _candleBodyWidthPxForSlot(double slotWidth) {
+  if (slotWidth <= 0) {
+    return 0;
+  }
+  final gap = candleGapPxForSlot(slotWidth);
+  final body = slotWidth - gap;
+  if (body <= 1) {
+    return slotWidth <= 1 ? slotWidth : 1;
+  }
+  return body;
 }
