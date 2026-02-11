@@ -1115,10 +1115,12 @@ class ChartPainter extends CustomPainter {
       }
 
       // Clamp to visible bounds
-      labelX = labelX.clamp(
-        chartLeft,
-        chartRight - textPainter.width,
-      );
+      final maxLabelX = chartRight - textPainter.width;
+      if (maxLabelX < chartLeft) {
+        labelX = chartLeft;
+      } else {
+        labelX = labelX.clamp(chartLeft, maxLabelX);
+      }
 
       labelInfos.add(
         _LabelInfo(
