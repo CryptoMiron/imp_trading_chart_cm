@@ -71,11 +71,27 @@ double resolveCurrentPriceMarkerBackgroundLeft({
 
 @visibleForTesting
 double resolveCurrentPriceMarkerBackgroundWidth({
-  required double chartRight,
-  required double canvasWidth,
+  required double availableWidth,
+  required double textWidth,
+  required double horizontalPadding,
 }) {
-  final safeMinLabelLeft = chartRight > canvasWidth ? canvasWidth : chartRight;
-  return (canvasWidth - safeMinLabelLeft).clamp(0.0, canvasWidth).toDouble();
+  final naturalWidth = textWidth + (horizontalPadding * 2);
+  return naturalWidth.clamp(0.0, availableWidth).toDouble();
+}
+
+@visibleForTesting
+double resolveCurrentPriceMarkerTextX({
+  required double markerLeft,
+  required double markerWidth,
+  required double textWidth,
+  required double horizontalPadding,
+}) {
+  final x = markerLeft + horizontalPadding;
+  final maxX = markerLeft + markerWidth - textWidth;
+  if (maxX < markerLeft) {
+    return markerLeft;
+  }
+  return x.clamp(markerLeft, maxX).toDouble();
 }
 
 List<double> buildAdaptivePriceTicks({
@@ -890,7 +906,7 @@ class ChartPainter extends CustomPainter {
       }
 
       final chartRight = mapper.paddingLeft + mapper.contentWidth;
-      final minLeft = chartRight + style.layout.gridToLabelGapY;
+      final minLeft = chartRight;
       final totalLabelWidth = textPainter.width + yAxisLabelPadding.horizontal;
       final labelBgLeft = _resolveRightAxisLabelLeft(
         size.width,
@@ -947,7 +963,7 @@ class ChartPainter extends CustomPainter {
       }
 
       final chartRight = mapper.paddingLeft + mapper.contentWidth;
-      final minLeft = chartRight + style.layout.gridToLabelGapY;
+      final minLeft = chartRight;
       final totalLabelWidth = textPainter.width + yAxisLabelPadding.horizontal;
       final labelBgLeft = _resolveRightAxisLabelLeft(
         size.width,
@@ -1341,10 +1357,13 @@ class ChartPainter extends CustomPainter {
 
     final labelPaddingH = currentPriceStyle.labelPaddingH.clamp(2.0, 6.0);
     final labelPaddingV = currentPriceStyle.labelPaddingV;
+    final availableWidth =
+        (size.width - safeMinLabelLeft).clamp(0.0, size.width).toDouble();
 
     final labelWidth = resolveCurrentPriceMarkerBackgroundWidth(
-      chartRight: safeMinLabelLeft,
-      canvasWidth: size.width,
+      availableWidth: availableWidth,
+      textWidth: textPainter.width,
+      horizontalPadding: labelPaddingH,
     );
     final labelHeight = textPainter.height + (labelPaddingV * 2);
 
@@ -1352,9 +1371,12 @@ class ChartPainter extends CustomPainter {
       chartRight: safeMinLabelLeft,
       canvasWidth: size.width,
     );
-    final rightTextPadding = labelPaddingH;
-    final textX = (bgStartX + labelWidth - textPainter.width - rightTextPadding)
-        .clamp(bgStartX, bgStartX + labelWidth);
+    final textX = resolveCurrentPriceMarkerTextX(
+      markerLeft: bgStartX,
+      markerWidth: labelWidth,
+      textWidth: textPainter.width,
+      horizontalPadding: labelPaddingH,
+    );
 
     double labelY = lineY - labelHeight / 2;
     labelY = labelY.clamp(

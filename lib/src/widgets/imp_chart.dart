@@ -981,7 +981,10 @@ class _ImpChartState extends State<ImpChart>
         );
         textPainter.layout();
 
-        maxLabelWidth = math.max(maxLabelWidth, textPainter.width);
+        maxLabelWidth = math.max(
+          maxLabelWidth,
+          textPainter.width + priceLabelStyle.padding.horizontal,
+        );
       }
 
       // ─────────────────────────────────────────────────────
@@ -1021,13 +1024,11 @@ class _ImpChartState extends State<ImpChart>
       }
 
       // Final Y-axis width:
-      // gap + widest label + label padding
-      final yAxisLabelPadding = layout.yAxisLabelPadding;
+      // Prefer current price marker width so separator stays close to marker.
       final effectiveLabelWidth =
-          math.max(maxLabelWidth, currentPriceLabelWidth);
+          currentPriceLabelWidth > 0 ? currentPriceLabelWidth : maxLabelWidth;
 
-      yAxisAreaWidth =
-          layout.yAxisGap + effectiveLabelWidth + yAxisLabelPadding.horizontal;
+      yAxisAreaWidth = effectiveLabelWidth;
     }
 
     // ─────────────────────────────────────────────────────────

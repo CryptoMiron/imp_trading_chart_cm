@@ -25,12 +25,23 @@ void main() {
     expect(left, 744);
   });
 
-  test('current price marker background reaches right chart edge', () {
+  test('current price marker width uses symmetric text paddings', () {
     final width = resolveCurrentPriceMarkerBackgroundWidth(
-      chartRight: 744,
-      canvasWidth: 800,
+      availableWidth: 56,
+      textWidth: 40,
+      horizontalPadding: 4,
     );
-    expect(width, 56);
+    expect(width, 48);
+  });
+
+  test('current price marker text has equal side paddings', () {
+    final textX = resolveCurrentPriceMarkerTextX(
+      markerLeft: 744,
+      markerWidth: 48,
+      textWidth: 40,
+      horizontalPadding: 4,
+    );
+    expect(textX, 748);
   });
 
   test('current price marker border radius is zero', () {
