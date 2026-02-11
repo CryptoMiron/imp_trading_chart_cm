@@ -53,6 +53,29 @@ class _LabelInfo {
   });
 }
 
+@immutable
+class CurrentPriceMarkerHorizontalLayout {
+  final double left;
+  final double width;
+
+  const CurrentPriceMarkerHorizontalLayout({
+    required this.left,
+    required this.width,
+  });
+}
+
+const double currentPriceMarkerBorderRadius = 0.0;
+
+@visibleForTesting
+CurrentPriceMarkerHorizontalLayout resolveCurrentPriceMarkerHorizontalLayout({
+  required double chartRight,
+  required double canvasWidth,
+}) {
+  final safeLeft = chartRight.clamp(0.0, canvasWidth).toDouble();
+  final width = (canvasWidth - safeLeft).clamp(0.0, canvasWidth).toDouble();
+  return CurrentPriceMarkerHorizontalLayout(left: safeLeft, width: width);
+}
+
 /// ---------------------------------------------------------------------------
 /// CHART PAINTER (CORE RENDERING LAYER)
 /// ---------------------------------------------------------------------------
@@ -1192,6 +1215,10 @@ class ChartPainter extends CustomPainter {
     final currentPriceStyle = style.currentPriceStyle;
     final layout = style.layout;
     final chartRight = mapper.paddingLeft + mapper.contentWidth;
+    final markerLayout = resolveCurrentPriceMarkerHorizontalLayout(
+      chartRight: chartRight,
+      canvasWidth: size.width,
+    );
     final textStyle = TextStyle(
       color: currentPriceStyle.textColor,
       fontSize: currentPriceStyle.labelFontSize,
@@ -1207,23 +1234,7 @@ class ChartPainter extends CustomPainter {
         ..color = currentPriceStyle.lineColor
         ..strokeWidth = currentPriceStyle.lineWidth;
 
-      double lineEndX = chartRight;
-      if (style.priceLabelStyle.show) {
-        final formatter = style.priceLabelStyle.formatter;
-        final previewText = formatter.format(price);
-        final previewPainter = TextPainter(
-          text: TextSpan(text: previewText, style: textStyle),
-          textDirection: TextDirection.ltr,
-        )..layout();
-
-        final labelWidth =
-            previewPainter.width + (currentPriceStyle.labelPaddingH * 2);
-        final minLeft =
-            mapper.paddingLeft + mapper.contentWidth + layout.gridToLabelGapY;
-        final bgStartX =
-            _resolveRightAxisLabelLeft(size.width, labelWidth, minLeft);
-        lineEndX = bgStartX - layout.gridToLabelGapY;
-      }
+      final lineEndX = markerLayout.left;
 
       _drawStyledLine(
         canvas,
@@ -1255,18 +1266,14 @@ class ChartPainter extends CustomPainter {
     );
     textPainter.layout();
 
-    final labelPaddingH = currentPriceStyle.labelPaddingH;
     final labelPaddingV = currentPriceStyle.labelPaddingV;
 
-    final labelWidth = textPainter.width + (labelPaddingH * 2);
+    final labelWidth = markerLayout.width;
     final labelHeight = textPainter.height + (labelPaddingV * 2);
 
-    /// Align with Y-axis labels (TradingView behavior)
-    final minLeft =
-        mapper.paddingLeft + mapper.contentWidth + style.layout.gridToLabelGapY;
-    final bgStartX =
-        _resolveRightAxisLabelLeft(size.width, labelWidth, minLeft);
-    final textX = bgStartX + labelPaddingH;
+    final bgStartX = markerLayout.left;
+    final centeredTextOffset = (labelWidth - textPainter.width) / 2;
+    final textX = bgStartX + (centeredTextOffset < 0 ? 0 : centeredTextOffset);
 
     double labelY = lineY - labelHeight / 2;
     labelY = labelY.clamp(
@@ -1274,16 +1281,13 @@ class ChartPainter extends CustomPainter {
       mapper.paddingTop + mapper.contentHeight - labelHeight,
     );
 
-    final labelRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(bgStartX, labelY, labelWidth, labelHeight),
-      Radius.circular(currentPriceStyle.labelBorderRadius),
-    );
+    final labelRect = Rect.fromLTWH(bgStartX, labelY, labelWidth, labelHeight);
 
     final bgPaint = Paint()
       ..color = labelBgColor
       ..style = PaintingStyle.fill;
 
-    canvas.drawRRect(labelRect, bgPaint);
+    canvas.drawRect(labelRect, bgPaint);
 
     textPainter.paint(
       canvas,
