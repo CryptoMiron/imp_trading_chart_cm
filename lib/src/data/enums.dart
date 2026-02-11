@@ -11,3 +11,10 @@ enum LineStyle {
   dashed,
   dotted,
 }
+
+/// Main series rendering mode.
+enum ChartType {
+  line,
+  candle,
+  bar,
+}

@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:imp_trading_chart/imp_trading_chart.dart'
-    show Candle, ChartStyle;
+    show Candle, ChartStyle, ChartType, TradingColors;
 import 'package:imp_trading_chart/src/data/enums.dart' show LineStyle;
 import 'package:imp_trading_chart/src/formatters/price_formatter.dart'
     show PriceFormatter;
@@ -97,6 +97,9 @@ class ChartPainter extends CustomPainter {
   /// Index of candle under crosshair (relative to visible candles)
   final int? crosshairIndex;
 
+  /// Series rendering mode.
+  final ChartType chartType;
+
   const ChartPainter({
     required this.candles,
     required this.mapper,
@@ -105,6 +108,7 @@ class ChartPainter extends CustomPainter {
     this.pulseProgress = 0.0,
     this.crosshairPosition,
     this.crosshairIndex,
+    this.chartType = ChartType.line,
   });
 
   /// -------------------------------------------------------------------------
@@ -137,8 +141,18 @@ class ChartPainter extends CustomPainter {
     );
     canvas.clipRect(chartRect);
 
-    /// Draw the price line (inside clipped area only)
-    _drawLineChart(canvas);
+    /// Draw the selected series type (inside clipped area only)
+    switch (chartType) {
+      case ChartType.line:
+        _drawLineChart(canvas);
+        break;
+      case ChartType.candle:
+        _drawCandlestickChart(canvas);
+        break;
+      case ChartType.bar:
+        _drawOhlcBarChart(canvas);
+        break;
+    }
 
     /// Restore canvas to allow grid & labels outside clip
     canvas.restore();
@@ -175,6 +189,109 @@ class ChartPainter extends CustomPainter {
         crosshairIndex != null &&
         style.crosshairStyle.show) {
       _drawCrosshair(canvas, size);
+    }
+  }
+
+  void _drawCandlestickChart(Canvas canvas) {
+    if (candles.isEmpty) return;
+
+    final candleWidth = (mapper.candleWidth * 0.72).clamp(1.0, 28.0);
+    final wickWidth = (mapper.candleWidth * 0.12).clamp(1.0, 2.5);
+    final wickPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = wickWidth
+      ..isAntiAlias = true;
+
+    for (int i = 0; i < candles.length; i++) {
+      final candle = candles[i];
+      final index = mapper.viewport.startIndex + i;
+      final x = mapper.getCandleCenterX(index);
+      final yOpen = mapper.priceToY(candle.open);
+      final yHigh = mapper.priceToY(candle.high);
+      final yLow = mapper.priceToY(candle.low);
+      final yClose = mapper.priceToY(candle.close);
+
+      if (!x.isFinite ||
+          !yOpen.isFinite ||
+          !yHigh.isFinite ||
+          !yLow.isFinite ||
+          !yClose.isFinite) {
+        continue;
+      }
+
+      final isBull = candle.close >= candle.open;
+      final color = isBull ? TradingColors.bullish : TradingColors.bearish;
+      wickPaint.color = color;
+
+      canvas.drawLine(Offset(x, yHigh), Offset(x, yLow), wickPaint);
+
+      final bodyTop = math.min(yOpen, yClose);
+      final bodyBottom = math.max(yOpen, yClose);
+      final bodyHeight = bodyBottom - bodyTop;
+      if (bodyHeight <= 1) {
+        canvas.drawLine(
+          Offset(x - candleWidth / 2, yClose),
+          Offset(x + candleWidth / 2, yClose),
+          wickPaint,
+        );
+      } else {
+        final bodyRect = Rect.fromLTWH(
+          x - candleWidth / 2,
+          bodyTop,
+          candleWidth,
+          bodyHeight,
+        );
+        final bodyFill = Paint()
+          ..style = PaintingStyle.fill
+          ..color = color.withValues(alpha: 0.9)
+          ..isAntiAlias = true;
+        final bodyStroke = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = color
+          ..isAntiAlias = true;
+        canvas.drawRect(bodyRect, bodyFill);
+        canvas.drawRect(bodyRect, bodyStroke);
+      }
+    }
+  }
+
+  void _drawOhlcBarChart(Canvas canvas) {
+    if (candles.isEmpty) return;
+
+    final tickHalf = (mapper.candleWidth * 0.28).clamp(1.0, 8.0);
+    final stroke = (mapper.candleWidth * 0.12).clamp(1.0, 2.5);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = stroke
+      ..isAntiAlias = true;
+
+    for (int i = 0; i < candles.length; i++) {
+      final candle = candles[i];
+      final index = mapper.viewport.startIndex + i;
+      final x = mapper.getCandleCenterX(index);
+      final yOpen = mapper.priceToY(candle.open);
+      final yHigh = mapper.priceToY(candle.high);
+      final yLow = mapper.priceToY(candle.low);
+      final yClose = mapper.priceToY(candle.close);
+
+      if (!x.isFinite ||
+          !yOpen.isFinite ||
+          !yHigh.isFinite ||
+          !yLow.isFinite ||
+          !yClose.isFinite) {
+        continue;
+      }
+
+      paint.color = candle.close >= candle.open
+          ? TradingColors.bullish
+          : TradingColors.bearish;
+
+      canvas.drawLine(Offset(x, yHigh), Offset(x, yLow), paint);
+      canvas.drawLine(Offset(x - tickHalf, yOpen), Offset(x, yOpen), paint);
+      canvas.drawLine(Offset(x, yClose), Offset(x + tickHalf, yClose), paint);
     }
   }
 
@@ -1742,6 +1859,7 @@ class ChartPainter extends CustomPainter {
     return candles != oldDelegate.candles ||
         mapper != oldDelegate.mapper ||
         style != oldDelegate.style ||
+        chartType != oldDelegate.chartType ||
         currentPrice != oldDelegate.currentPrice ||
         (pulseProgress - oldDelegate.pulseProgress).abs() > 0.01 ||
         crosshairPosition != oldDelegate.crosshairPosition ||

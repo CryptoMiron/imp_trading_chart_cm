@@ -102,6 +102,9 @@ class ImpChart extends StatefulWidget {
   /// Enable haptic feedback when crosshair moves between candles.
   final bool crosshairChangeFeedback;
 
+  /// Visual type of series rendering.
+  final ChartType chartType;
+
   ImpChart({
     super.key,
     required this.candles,
@@ -113,6 +116,7 @@ class ImpChart extends StatefulWidget {
     this.onCrosshairChanged,
     this.plotFeedback = false,
     this.crosshairChangeFeedback = false,
+    this.chartType = ChartType.line,
   }) : style = style ?? ChartStyle();
 
   @override
@@ -141,6 +145,7 @@ class ImpChart extends StatefulWidget {
     int? defaultVisibleCount,
     bool plotFeedback = false,
     bool crosshairChangeFeedback = false,
+    ChartType chartType = ChartType.line,
   }) {
     return ImpChart(
       candles: candles,
@@ -150,6 +155,7 @@ class ImpChart extends StatefulWidget {
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
       crosshairChangeFeedback: crosshairChangeFeedback,
+      chartType: chartType,
       style: ChartStyle.minimal(
         lineColor: lineColor ?? const Color.fromRGBO(15, 173, 0, 1),
         lineWidth: lineWidth ?? 2.0,
@@ -176,6 +182,7 @@ class ImpChart extends StatefulWidget {
     int? defaultVisibleCount,
     bool plotFeedback = false,
     bool crosshairChangeFeedback = false,
+    ChartType chartType = ChartType.line,
   }) {
     return ImpChart(
       candles: candles,
@@ -186,6 +193,7 @@ class ImpChart extends StatefulWidget {
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
       crosshairChangeFeedback: crosshairChangeFeedback,
+      chartType: chartType,
       style: ChartStyle.simple(
         backgroundColor: backgroundColor ?? Colors.transparent,
         textColor: textColor ?? Colors.white,
@@ -216,6 +224,7 @@ class ImpChart extends StatefulWidget {
     int? defaultVisibleCount,
     bool plotFeedback = true,
     bool crosshairChangeFeedback = true,
+    ChartType chartType = ChartType.candle,
   }) {
     return ImpChart(
       key: key,
@@ -227,6 +236,7 @@ class ImpChart extends StatefulWidget {
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
       crosshairChangeFeedback: crosshairChangeFeedback,
+      chartType: chartType,
       style: ChartStyle.trading(
         backgroundColor: backgroundColor ?? Colors.transparent,
         lineColor: lineColor ?? const Color(0xFF78D99B),
@@ -256,6 +266,7 @@ class ImpChart extends StatefulWidget {
     int? defaultVisibleCount,
     bool plotFeedback = false,
     bool crosshairChangeFeedback = false,
+    ChartType chartType = ChartType.line,
   }) {
     return ImpChart(
       candles: candles,
@@ -266,6 +277,7 @@ class ImpChart extends StatefulWidget {
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
       crosshairChangeFeedback: crosshairChangeFeedback,
+      chartType: chartType,
       style: ChartStyle.compact(
         backgroundColor: backgroundColor ?? Colors.transparent,
         lineColor: lineColor ?? Colors.blue,
@@ -1112,6 +1124,7 @@ class _ImpChartState extends State<ImpChart>
                 pulseProgress: _pulseProgress,
                 crosshairPosition: _crosshairPosition,
                 crosshairIndex: _crosshairIndex,
+                chartType: widget.chartType,
               ),
               size: size,
             ),
