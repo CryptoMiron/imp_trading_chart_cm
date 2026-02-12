@@ -61,21 +61,6 @@ double resolveCurrentPriceMarkerLeft(double chartRight) {
 }
 
 @visibleForTesting
-double candlestickWickStrokeWidth(double candleSlotWidth) {
-  return (candleSlotWidth * 0.08).clamp(0.5, 1.0).toDouble();
-}
-
-@visibleForTesting
-StrokeCap candlestickWickStrokeCap() {
-  return StrokeCap.butt;
-}
-
-@visibleForTesting
-Color candlestickBodyFillColor(Color color) {
-  return color.withValues(alpha: 1.0);
-}
-
-@visibleForTesting
 double resolveCurrentPriceMarkerBackgroundLeft({
   required double chartRight,
   required double canvasWidth,
@@ -318,12 +303,12 @@ class ChartPainter extends CustomPainter {
     if (candles.isEmpty) return;
 
     final candleWidth = _candleBodyWidthPxForSlot(mapper.candleWidth);
-    final wickWidth = candlestickWickStrokeWidth(mapper.candleWidth);
+    final wickWidth = (mapper.candleWidth * 0.12).clamp(1.0, 2.5);
     final wickPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeCap = candlestickWickStrokeCap()
+      ..strokeCap = StrokeCap.round
       ..strokeWidth = wickWidth
-      ..isAntiAlias = false;
+      ..isAntiAlias = true;
 
     for (int i = 0; i < candles.length; i++) {
       final candle = candles[i];
@@ -366,9 +351,15 @@ class ChartPainter extends CustomPainter {
         );
         final bodyFill = Paint()
           ..style = PaintingStyle.fill
-          ..color = candlestickBodyFillColor(color)
-          ..isAntiAlias = false;
+          ..color = color.withValues(alpha: 0.9)
+          ..isAntiAlias = true;
+        final bodyStroke = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = color
+          ..isAntiAlias = true;
         canvas.drawRect(bodyRect, bodyFill);
+        canvas.drawRect(bodyRect, bodyStroke);
       }
     }
   }
