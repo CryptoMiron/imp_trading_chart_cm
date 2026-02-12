@@ -17,6 +17,14 @@ import 'package:imp_trading_chart/src/engine/chart_viewport.dart'
 import 'package:imp_trading_chart/src/rendering/chart_painter.dart'
     show ChartPainter, buildAdaptivePriceTicks;
 
+/// Public controller for imperative chart actions.
+class ImpChartController extends ChangeNotifier {
+  /// Request immediate price-scale auto-fit for current viewport.
+  void resetPriceScaleAutoFit() {
+    notifyListeners();
+  }
+}
+
 /// ─────────────────────────────────────────────────────────
 /// 🧩 ImpChart
 /// ─────────────────────────────────────────────────────────
@@ -105,6 +113,9 @@ class ImpChart extends StatefulWidget {
   /// Visual type of series rendering.
   final ChartType chartType;
 
+  /// Optional imperative controller.
+  final ImpChartController? controller;
+
   ImpChart({
     super.key,
     required this.candles,
@@ -117,6 +128,7 @@ class ImpChart extends StatefulWidget {
     this.plotFeedback = false,
     this.crosshairChangeFeedback = false,
     this.chartType = ChartType.line,
+    this.controller,
   }) : style = style ?? ChartStyle();
 
   @override
@@ -359,6 +371,10 @@ class _ImpChartState extends State<ImpChart>
     return chartType == ChartType.line;
   }
 
+  void _handleControllerChanged() {
+    _updateEngine(_engine.withViewport(_engine.viewport));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -378,6 +394,8 @@ class _ImpChartState extends State<ImpChart>
       defaultVisibleCount: widget.defaultVisibleCount,
       useCloseOnlyPriceScale: _usesCloseOnlyPriceScale(widget.chartType),
     );
+
+    widget.controller?.addListener(_handleControllerChanged);
 
     // ─────────────────────────────────────────────────────────
     // Ripple / pulse animation setup
@@ -413,6 +431,11 @@ class _ImpChartState extends State<ImpChart>
   @override
   void didUpdateWidget(ImpChart oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_handleControllerChanged);
+      widget.controller?.addListener(_handleControllerChanged);
+    }
 
     if (widget.chartType != oldWidget.chartType) {
       _engine = ChartEngine(
@@ -599,6 +622,8 @@ class _ImpChartState extends State<ImpChart>
 
   @override
   void dispose() {
+    widget.controller?.removeListener(_handleControllerChanged);
+
     // Clean up timers and animations explicitly
     _rippleTimer?.cancel();
     _rippleTimer = null;
