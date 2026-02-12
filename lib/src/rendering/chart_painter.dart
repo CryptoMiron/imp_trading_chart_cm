@@ -61,8 +61,8 @@ Color candlestickBodyFillColor(Color color) {
 }
 
 @visibleForTesting
-double resolveCurrentPriceMarkerLeft(double chartRight, {double gap = 0.0}) {
-  return chartRight + gap;
+double resolveCurrentPriceMarkerLeft(double chartRight) {
+  return chartRight;
 }
 
 @visibleForTesting
@@ -911,7 +911,7 @@ class ChartPainter extends CustomPainter {
       }
 
       final chartRight = mapper.paddingLeft + mapper.contentWidth;
-      final minLeft = chartRight + style.layout.gridToLabelGapY;
+      final minLeft = chartRight;
       final totalLabelWidth = textPainter.width + yAxisLabelPadding.horizontal;
       final labelBgLeft = _resolveRightAxisLabelLeft(
         size.width,
@@ -968,7 +968,7 @@ class ChartPainter extends CustomPainter {
       }
 
       final chartRight = mapper.paddingLeft + mapper.contentWidth;
-      final minLeft = chartRight + style.layout.gridToLabelGapY;
+      final minLeft = chartRight;
       final totalLabelWidth = textPainter.width + yAxisLabelPadding.horizontal;
       final labelBgLeft = _resolveRightAxisLabelLeft(
         size.width,
@@ -1309,10 +1309,7 @@ class ChartPainter extends CustomPainter {
 
     final currentPriceStyle = style.currentPriceStyle;
     final chartRight = mapper.paddingLeft + mapper.contentWidth;
-    final minLabelLeft = resolveCurrentPriceMarkerLeft(
-      chartRight,
-      gap: style.layout.gridToLabelGapY,
-    );
+    final minLabelLeft = resolveCurrentPriceMarkerLeft(chartRight);
     final safeMinLabelLeft =
         minLabelLeft > size.width ? size.width : minLabelLeft;
     final textStyle = TextStyle(
