@@ -1067,8 +1067,9 @@ class _ImpChartState extends State<ImpChart>
     // If axis labels are hidden, fallback to default padding.
     return _PaddingInfo(
       left: chartDataLeft,
-      right:
-          yAxisAreaWidth > 0 ? yAxisAreaWidth : layout.chartDataPadding.right,
+      right: yAxisAreaWidth > 0
+          ? yAxisAreaWidth + layout.chartDataPadding.right
+          : layout.chartDataPadding.right,
       top: chartDataTop,
       bottom: xAxisAreaHeight > 0
           ? xAxisAreaHeight
