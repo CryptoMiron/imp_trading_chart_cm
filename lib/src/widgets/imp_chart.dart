@@ -337,6 +337,9 @@ class _ImpChartState extends State<ImpChart>
   /// this timer only schedules when it should start again.
   Timer? _rippleTimer;
 
+  /// Periodic timer that refreshes current-price countdown text.
+  Timer? _countdownTimer;
+
   /// Current progress of the ripple animation (0.0 → 1.0).
   ///
   /// This value is passed directly into [ChartPainter] to render
@@ -426,6 +429,8 @@ class _ImpChartState extends State<ImpChart>
         }
       });
     }
+
+    _updateCountdownTicker();
   }
 
   @override
@@ -605,6 +610,39 @@ class _ImpChartState extends State<ImpChart>
     } else if (!rippleEnabled && wasRippleEnabled) {
       _stopContinuousRipple();
     }
+
+    _updateCountdownTicker();
+  }
+
+  bool get _shouldTickCountdown {
+    return widget.style.currentPriceStyle.showLabel &&
+        widget.candles.isNotEmpty;
+  }
+
+  void _updateCountdownTicker() {
+    if (_shouldTickCountdown) {
+      _startCountdownTicker();
+    } else {
+      _stopCountdownTicker();
+    }
+  }
+
+  void _startCountdownTicker() {
+    if (_countdownTimer?.isActive ?? false) {
+      return;
+    }
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || !_shouldTickCountdown) {
+        timer.cancel();
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  void _stopCountdownTicker() {
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
   }
 
   /// Animation listener that maps controller value → repaint.
@@ -627,6 +665,9 @@ class _ImpChartState extends State<ImpChart>
     // Clean up timers and animations explicitly
     _rippleTimer?.cancel();
     _rippleTimer = null;
+
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
 
     _pulseController.stop();
     _pulseController.removeListener(_pulseListener);

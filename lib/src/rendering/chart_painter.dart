@@ -80,8 +80,7 @@ double resolveCurrentPriceMarkerBackgroundWidth({
   required double textWidth,
   required double horizontalPadding,
 }) {
-  final naturalWidth = textWidth + (horizontalPadding * 2);
-  return naturalWidth.clamp(0.0, availableWidth).toDouble();
+  return availableWidth.clamp(0.0, availableWidth).toDouble();
 }
 
 @visibleForTesting
@@ -91,12 +90,91 @@ double resolveCurrentPriceMarkerTextX({
   required double textWidth,
   required double horizontalPadding,
 }) {
-  final x = markerLeft + horizontalPadding;
+  final x = markerLeft + ((markerWidth - textWidth) / 2);
   final maxX = markerLeft + markerWidth - textWidth;
   if (maxX < markerLeft) {
     return markerLeft;
   }
   return x.clamp(markerLeft, maxX).toDouble();
+}
+
+@visibleForTesting
+Duration resolveRemainingCandleTime({
+  required DateTime candleOpenTime,
+  required Duration candleTimeframe,
+  required DateTime now,
+}) {
+  if (candleTimeframe <= Duration.zero) {
+    return Duration.zero;
+  }
+  final closeTime = candleOpenTime.add(candleTimeframe);
+  final remaining = closeTime.difference(now);
+  if (remaining <= Duration.zero) {
+    return Duration.zero;
+  }
+  return remaining;
+}
+
+@visibleForTesting
+String formatRemainingCandleTime(Duration remaining) {
+  final totalSeconds = remaining.inSeconds < 0 ? 0 : remaining.inSeconds;
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  final seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+  return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+}
+
+Duration _inferCandleTimeframe(List<Candle> candles) {
+  if (candles.length < 2) {
+    return Duration.zero;
+  }
+  final last = candles[candles.length - 1].time;
+  final previous = candles[candles.length - 2].time;
+  final delta = (last - previous).abs();
+  if (delta <= 0) {
+    return Duration.zero;
+  }
+  final isMilliseconds = last.abs() >= 1000000000000;
+  if (isMilliseconds) {
+    return Duration(milliseconds: delta);
+  }
+  return Duration(seconds: delta);
+}
+
+String _buildCurrentPriceCountdownText(List<Candle> candles, {DateTime? now}) {
+  if (candles.isEmpty) {
+    return '00:00';
+  }
+  final last = candles.last;
+  final isMilliseconds = last.time.abs() >= 1000000000000;
+  final openTime = DateTime.fromMillisecondsSinceEpoch(
+    isMilliseconds ? last.time : last.time * 1000,
+    isUtc: true,
+  );
+  final timeframe = _inferCandleTimeframe(candles);
+  final currentNow = now?.toUtc() ?? DateTime.now().toUtc();
+  final remaining = resolveRemainingCandleTime(
+    candleOpenTime: openTime,
+    candleTimeframe: timeframe,
+    now: currentNow,
+  );
+  return formatRemainingCandleTime(remaining);
+}
+
+@visibleForTesting
+bool shouldDrawCurrentPricePulse({
+  required bool hasVisibleCandles,
+  required bool rippleEnabled,
+  required int viewportEndIndex,
+  required int totalCount,
+}) {
+  if (!hasVisibleCandles || !rippleEnabled || totalCount <= 0) {
+    return false;
+  }
+  return viewportEndIndex >= totalCount;
 }
 
 List<double> buildAdaptivePriceTicks({
@@ -292,7 +370,12 @@ class ChartPainter extends CustomPainter {
     }
 
     /// Draw live ripple animation on the latest candle
-    if (candles.isNotEmpty && style.rippleStyle.show) {
+    if (shouldDrawCurrentPricePulse(
+      hasVisibleCandles: candles.isNotEmpty,
+      rippleEnabled: style.rippleStyle.show,
+      viewportEndIndex: mapper.viewport.endIndex,
+      totalCount: mapper.viewport.totalCount,
+    )) {
       _drawRippleOnLastPoint(canvas, size);
     }
 
@@ -1312,11 +1395,10 @@ class ChartPainter extends CustomPainter {
     final minLabelLeft = resolveCurrentPriceMarkerLeft(chartRight);
     final safeMinLabelLeft =
         minLabelLeft > size.width ? size.width : minLabelLeft;
+    final priceLabelStyle = style.priceLabelStyle;
     final textStyle = TextStyle(
-      color: currentPriceStyle.textColor,
-      fontSize: currentPriceStyle.labelFontSize,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 0.5,
+      color: priceLabelStyle.color,
+      fontSize: priceLabelStyle.fontSize,
       fontFeatures: const [ui.FontFeature.tabularFigures()],
     );
 
@@ -1353,17 +1435,23 @@ class ChartPainter extends CustomPainter {
 
     final priceFormatter = style.priceLabelStyle.formatter;
     final priceText = priceFormatter.format(price);
-
-    final textPainter = TextPainter(
-      text: TextSpan(text: priceText, style: textStyle),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
+    final countdownText = _buildCurrentPriceCountdownText(candles);
+    final labelText = '$priceText\n$countdownText';
 
     final labelPaddingH = currentPriceStyle.labelPaddingH.clamp(2.0, 6.0);
     final labelPaddingV = currentPriceStyle.labelPaddingV;
     final availableWidth =
         (size.width - safeMinLabelLeft).clamp(0.0, size.width).toDouble();
+
+    final textPainter = TextPainter(
+      text: TextSpan(text: labelText, style: textStyle),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+      maxLines: 2,
+    );
+    final maxTextWidth =
+        (availableWidth - (labelPaddingH * 2)).clamp(0.0, availableWidth);
+    textPainter.layout(maxWidth: maxTextWidth);
 
     final labelWidth = resolveCurrentPriceMarkerBackgroundWidth(
       availableWidth: availableWidth,
@@ -2031,7 +2119,6 @@ double candleGapPxForSlot(double slotWidth) {
   return 2 + (2 * normalized);
 }
 
-@visibleForTesting
 double _candleBodyWidthPxForSlot(double slotWidth) {
   if (slotWidth <= 0) {
     return 0;
