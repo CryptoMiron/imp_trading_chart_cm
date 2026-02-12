@@ -355,6 +355,10 @@ class _ImpChartState extends State<ImpChart>
   /// This is the index within *visible candles*, not the full dataset.
   int? _crosshairIndex;
 
+  bool _usesCloseOnlyPriceScale(ChartType chartType) {
+    return chartType == ChartType.line;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -372,6 +376,7 @@ class _ImpChartState extends State<ImpChart>
     _engine = ChartEngine(
       candles: widget.candles,
       defaultVisibleCount: widget.defaultVisibleCount,
+      useCloseOnlyPriceScale: _usesCloseOnlyPriceScale(widget.chartType),
     );
 
     // ─────────────────────────────────────────────────────────
@@ -408,6 +413,17 @@ class _ImpChartState extends State<ImpChart>
   @override
   void didUpdateWidget(ImpChart oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (widget.chartType != oldWidget.chartType) {
+      _engine = ChartEngine(
+        candles: widget.candles,
+        initialViewport: _engine.viewport.copyWith(
+          totalCount: widget.candles.length,
+        ),
+        defaultVisibleCount: widget.defaultVisibleCount,
+        useCloseOnlyPriceScale: _usesCloseOnlyPriceScale(widget.chartType),
+      );
+    }
 
     // ─────────────────────────────────────────────────────────
     // 🔁 Detect candle data changes
