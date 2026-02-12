@@ -17,6 +17,10 @@ void main() {
     expect(resolveCurrentPriceMarkerLeft(744), 744);
   });
 
+  test('current price marker supports configurable chart-to-scale gap', () {
+    expect(resolveCurrentPriceMarkerLeft(744, gap: 10), 754);
+  });
+
   test('current price marker background starts at separator without gap', () {
     final left = resolveCurrentPriceMarkerBackgroundLeft(
       chartRight: 744,

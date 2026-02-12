@@ -1028,7 +1028,7 @@ class _ImpChartState extends State<ImpChart>
       final effectiveLabelWidth =
           currentPriceLabelWidth > 0 ? currentPriceLabelWidth : maxLabelWidth;
 
-      yAxisAreaWidth = effectiveLabelWidth;
+      yAxisAreaWidth = effectiveLabelWidth + layout.gridToLabelGapY;
     }
 
     // ─────────────────────────────────────────────────────────
