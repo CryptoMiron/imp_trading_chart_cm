@@ -56,6 +56,11 @@ class _LabelInfo {
 const double currentPriceMarkerBorderRadius = 0.0;
 
 @visibleForTesting
+Color candlestickBodyFillColor(Color color) {
+  return color.withValues(alpha: 1.0);
+}
+
+@visibleForTesting
 double resolveCurrentPriceMarkerLeft(double chartRight) {
   return chartRight;
 }
@@ -351,7 +356,7 @@ class ChartPainter extends CustomPainter {
         );
         final bodyFill = Paint()
           ..style = PaintingStyle.fill
-          ..color = color.withValues(alpha: 0.9)
+          ..color = candlestickBodyFillColor(color)
           ..isAntiAlias = true;
         final bodyStroke = Paint()
           ..style = PaintingStyle.stroke
