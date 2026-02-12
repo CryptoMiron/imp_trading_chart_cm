@@ -131,6 +131,15 @@ class ChartLayout {
   /// Default: `4.0`
   final double gridToLabelGapY;
 
+  /// TradingView-style right offset measured in candle bars.
+  ///
+  /// This adds virtual bars to the right of the latest candle so
+  /// future space remains interactive (crosshair/grid) without widening
+  /// the price-scale column itself.
+  ///
+  /// Default: `0.0`
+  final double rightOffsetBars;
+
   /// Vertical gap between grid line end and X-axis label start.
   ///
   /// Used by:
@@ -154,6 +163,7 @@ class ChartLayout {
     this.currentPriceLabelGap = 4.0,
     this.gridToLabelGapY = 4.0,
     this.gridToLabelGapX = 4.0,
+    this.rightOffsetBars = 0.0,
   });
 
   /// Creates a modified copy of this layout.
@@ -172,6 +182,7 @@ class ChartLayout {
     double? currentPriceLabelGap,
     double? gridToLabelGapY,
     double? gridToLabelGapX,
+    double? rightOffsetBars,
   }) {
     return ChartLayout(
       chartDataPadding: chartDataPadding ?? this.chartDataPadding,
@@ -182,6 +193,7 @@ class ChartLayout {
       currentPriceLabelGap: currentPriceLabelGap ?? this.currentPriceLabelGap,
       gridToLabelGapY: gridToLabelGapY ?? this.gridToLabelGapY,
       gridToLabelGapX: gridToLabelGapX ?? this.gridToLabelGapX,
+      rightOffsetBars: rightOffsetBars ?? this.rightOffsetBars,
     );
   }
 
@@ -200,7 +212,8 @@ class ChartLayout {
           xAxisLabelPadding == other.xAxisLabelPadding &&
           currentPriceLabelGap == other.currentPriceLabelGap &&
           gridToLabelGapY == other.gridToLabelGapY &&
-          gridToLabelGapX == other.gridToLabelGapX;
+          gridToLabelGapX == other.gridToLabelGapX &&
+          rightOffsetBars == other.rightOffsetBars;
 
   @override
   int get hashCode =>
@@ -211,5 +224,6 @@ class ChartLayout {
       xAxisLabelPadding.hashCode ^
       currentPriceLabelGap.hashCode ^
       gridToLabelGapY.hashCode ^
-      gridToLabelGapX.hashCode;
+      gridToLabelGapX.hashCode ^
+      rightOffsetBars.hashCode;
 }

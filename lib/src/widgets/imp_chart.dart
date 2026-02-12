@@ -751,6 +751,7 @@ class _ImpChartState extends State<ImpChart>
         paddingRight: padding.right,
         paddingTop: padding.top,
         paddingBottom: padding.bottom,
+        rightOffsetBars: widget.style.layout.rightOffsetBars,
       );
 
       final anchorIndex = mapper.xToIndex(details.focalPoint.dx);
@@ -861,6 +862,7 @@ class _ImpChartState extends State<ImpChart>
       paddingRight: padding.right,
       paddingTop: padding.top,
       paddingBottom: padding.bottom,
+      rightOffsetBars: widget.style.layout.rightOffsetBars,
     );
 
     // Absolute index in full candle list
@@ -906,6 +908,7 @@ class _ImpChartState extends State<ImpChart>
       paddingRight: padding.right,
       paddingTop: padding.top,
       paddingBottom: padding.bottom,
+      rightOffsetBars: widget.style.layout.rightOffsetBars,
     );
 
     return mapper.candleWidth;
@@ -1132,6 +1135,7 @@ class _ImpChartState extends State<ImpChart>
                   paddingRight: padding.right,
                   paddingTop: padding.top,
                   paddingBottom: padding.bottom,
+                  rightOffsetBars: widget.style.layout.rightOffsetBars,
                 ),
                 style: widget.style,
                 currentPrice: widget.currentPrice ?? _engine.getLatestPrice(),

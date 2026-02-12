@@ -252,6 +252,7 @@ class ChartEngine {
     double paddingRight = 10.0,
     double paddingTop = 10.0,
     double paddingBottom = 40.0,
+    double rightOffsetBars = 0.0,
     double paddingPercent = 0.05,
   }) {
     final scale = getPriceScale(paddingPercent: paddingPercent);
@@ -265,6 +266,7 @@ class ChartEngine {
       paddingRight: paddingRight,
       paddingTop: paddingTop,
       paddingBottom: paddingBottom,
+      rightOffsetBars: rightOffsetBars,
     );
   }
 

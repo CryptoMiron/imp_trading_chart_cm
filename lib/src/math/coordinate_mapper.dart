@@ -62,6 +62,9 @@ class CoordinateMapper {
   /// Bottom padding reserved for X-axis labels.
   final double paddingBottom;
 
+  /// TradingView-style right offset measured in bars.
+  final double rightOffsetBars;
+
   /// Effective drawable width after removing horizontal padding.
   double get contentWidth => chartWidth - paddingLeft - paddingRight;
 
@@ -77,7 +80,14 @@ class CoordinateMapper {
     this.paddingRight = 0.0,
     this.paddingTop = 0.0,
     this.paddingBottom = 0.0,
+    this.rightOffsetBars = 0.0,
   });
+
+  /// Visible horizontal slot count including right offset bars.
+  double get horizontalSlotCount {
+    final slots = viewport.visibleCount + rightOffsetBars;
+    return slots <= 0 ? 1.0 : slots;
+  }
 
   // ─────────────────────────────────────────────────────────
   // 🔁 X-axis mapping (index ↔ pixel)
@@ -94,12 +104,12 @@ class CoordinateMapper {
   /// - If only one candle is visible, it is centered horizontally.
   double indexToX(int index) {
     // Single-candle case: center it
-    if (viewport.visibleCount == 1) {
+    if (horizontalSlotCount <= 1) {
       return paddingLeft + (contentWidth / 2);
     }
 
     final relativeIndex = index - viewport.startIndex;
-    final normalizedX = relativeIndex / viewport.visibleCount;
+    final normalizedX = relativeIndex / horizontalSlotCount;
 
     return (normalizedX * contentWidth) + paddingLeft;
   }
@@ -115,7 +125,7 @@ class CoordinateMapper {
   /// - Snaps to nearest candle center
   int xToIndex(double x) {
     // Single-candle case: always return that candle
-    if (viewport.visibleCount == 1) {
+    if (horizontalSlotCount <= 1) {
       return viewport.startIndex;
     }
 
@@ -126,7 +136,7 @@ class CoordinateMapper {
 
     // Normalize to [0, visibleCount]
     final normalizedX = relativeX / contentWidth;
-    final exactRelativeIndex = normalizedX * viewport.visibleCount;
+    final exactRelativeIndex = normalizedX * horizontalSlotCount;
 
     // Round to nearest candle center
     final relativeIndex = exactRelativeIndex.round();
@@ -167,7 +177,7 @@ class CoordinateMapper {
   // ─────────────────────────────────────────────────────────
 
   /// Width of a single candle in pixels.
-  double get candleWidth => contentWidth / viewport.visibleCount;
+  double get candleWidth => contentWidth / horizontalSlotCount;
 
   /// Get X coordinate of candle CENTER.
   ///
@@ -178,7 +188,7 @@ class CoordinateMapper {
   /// SPECIAL CASE:
   /// - Single candle → centered horizontally
   double getCandleCenterX(int index) {
-    if (viewport.visibleCount == 1) {
+    if (horizontalSlotCount <= 1) {
       return paddingLeft + (contentWidth / 2);
     }
     return indexToX(index) + (candleWidth / 2);
@@ -213,7 +223,8 @@ class CoordinateMapper {
           paddingLeft == other.paddingLeft &&
           paddingRight == other.paddingRight &&
           paddingTop == other.paddingTop &&
-          paddingBottom == other.paddingBottom;
+          paddingBottom == other.paddingBottom &&
+          rightOffsetBars == other.rightOffsetBars;
 
   @override
   int get hashCode =>
@@ -224,5 +235,6 @@ class CoordinateMapper {
       paddingLeft.hashCode ^
       paddingRight.hashCode ^
       paddingTop.hashCode ^
-      paddingBottom.hashCode;
+      paddingBottom.hashCode ^
+      rightOffsetBars.hashCode;
 }
