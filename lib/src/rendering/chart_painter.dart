@@ -150,17 +150,29 @@ String _buildCurrentPriceCountdownText(List<Candle> candles, {DateTime? now}) {
   }
   final last = candles.last;
   final isMilliseconds = last.time.abs() >= 1000000000000;
-  final openTime = DateTime.fromMillisecondsSinceEpoch(
+  final lastOpenTime = DateTime.fromMillisecondsSinceEpoch(
     isMilliseconds ? last.time : last.time * 1000,
     isUtc: true,
   );
   final timeframe = _inferCandleTimeframe(candles);
+  if (timeframe <= Duration.zero) {
+    return '00:00';
+  }
+
   final currentNow = now?.toUtc() ?? DateTime.now().toUtc();
-  final remaining = resolveRemainingCandleTime(
-    candleOpenTime: openTime,
-    candleTimeframe: timeframe,
-    now: currentNow,
-  );
+
+  // Найти время закрытия текущего ТФ (следующий close time от текущего момента)
+  var closeTime = lastOpenTime.add(timeframe);
+  while (closeTime.isBefore(currentNow) ||
+      closeTime.isAtSameMomentAs(currentNow)) {
+    closeTime = closeTime.add(timeframe);
+  }
+
+  final remaining = closeTime.difference(currentNow);
+  if (remaining <= Duration.zero) {
+    return '00:00';
+  }
+
   return formatRemainingCandleTime(remaining);
 }
 

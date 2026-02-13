@@ -155,7 +155,7 @@ class ChartLayout {
   /// TradingView-inspired values.
   const ChartLayout({
     this.chartDataPadding = const EdgeInsets.all(10.0),
-    this.yAxisGap = 8.0,
+    this.yAxisGap = 12.0,
     this.xAxisGap = 4.0,
     this.yAxisLabelPadding =
         const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
