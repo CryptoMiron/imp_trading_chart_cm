@@ -428,7 +428,9 @@ class ChartPainter extends CustomPainter {
       }
 
       final isBull = candle.close >= candle.open;
-      final color = isBull ? TradingColors.bullish : TradingColors.bearish;
+      final color = isBull
+          ? TradingColors.bullishTradingView
+          : TradingColors.bearishTradingView;
       wickPaint.color = color;
 
       canvas.drawLine(Offset(x, yHigh), Offset(x, yLow), wickPaint);
@@ -495,8 +497,8 @@ class ChartPainter extends CustomPainter {
       }
 
       paint.color = candle.close >= candle.open
-          ? TradingColors.bullish
-          : TradingColors.bearish;
+          ? TradingColors.bullishTradingView
+          : TradingColors.bearishTradingView;
 
       canvas.drawLine(Offset(x, yHigh), Offset(x, yLow), paint);
       canvas.drawLine(Offset(x - tickHalf, yOpen), Offset(x, yOpen), paint);
