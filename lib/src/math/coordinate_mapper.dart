@@ -84,8 +84,10 @@ class CoordinateMapper {
   });
 
   /// Visible horizontal slot count including right offset bars.
+  ///
+  /// Multiplied by 2 to increase spacing between bars.
   double get horizontalSlotCount {
-    final slots = viewport.visibleCount + rightOffsetBars;
+    final slots = (viewport.visibleCount + rightOffsetBars) * 2;
     return slots <= 0 ? 1.0 : slots;
   }
 
