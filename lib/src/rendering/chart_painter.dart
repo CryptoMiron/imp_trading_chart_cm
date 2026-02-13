@@ -2130,7 +2130,7 @@ double candleGapPxForSlot(double slotWidth) {
     return 0;
   }
   final normalized = ((slotWidth - 6) / 24).clamp(0.0, 1.0).toDouble();
-  return 2 + (2 * normalized);
+  return 4 + (4 * normalized); // Увеличено в 2 раза: было 2 + (2 * normalized)
 }
 
 double _candleBodyWidthPxForSlot(double slotWidth) {
