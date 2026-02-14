@@ -297,6 +297,12 @@ class ChartPainter extends CustomPainter {
   /// Index of candle under crosshair (relative to visible candles)
   final int? crosshairIndex;
 
+  /// Measurement line start position (for right-click drag measurement)
+  final Offset? measurementStart;
+
+  /// Measurement line current/end position
+  final Offset? measurementEnd;
+
   /// Series rendering mode.
   final ChartType chartType;
 
@@ -308,6 +314,8 @@ class ChartPainter extends CustomPainter {
     this.pulseProgress = 0.0,
     this.crosshairPosition,
     this.crosshairIndex,
+    this.measurementStart,
+    this.measurementEnd,
     this.chartType = ChartType.line,
   });
 
@@ -394,6 +402,11 @@ class ChartPainter extends CustomPainter {
         crosshairIndex != null &&
         style.crosshairStyle.show) {
       _drawCrosshair(canvas, size);
+    }
+
+    /// Measurement line (right-click drag)
+    if (measurementStart != null && measurementEnd != null) {
+      _drawMeasurement(canvas, size);
     }
   }
 
@@ -2044,6 +2057,72 @@ class ChartPainter extends CustomPainter {
     }
   }
 
+  void _drawMeasurement(Canvas canvas, Size size) {
+    if (measurementStart == null || measurementEnd == null) return;
+
+    final start = measurementStart!;
+    final end = measurementEnd!;
+
+    final startPrice = mapper.yToPrice(start.dy);
+    final endPrice = mapper.yToPrice(end.dy);
+
+    if (!startPrice.isFinite || !endPrice.isFinite) return;
+
+    final priceDiff = (endPrice - startPrice).abs();
+    final percentDiff = (priceDiff / startPrice) * 100;
+
+    final linePaint = Paint()
+      ..color = const Color(0xFF00BFFF)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(start, end, linePaint);
+
+    final dashPaint = Paint()
+      ..color = const Color(0xFF00BFFF).withAlpha(150)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final horizontalY = end.dy;
+    final left = mapper.paddingLeft;
+    final right = mapper.paddingLeft + mapper.contentWidth;
+
+    canvas.drawLine(
+        Offset(left, horizontalY), Offset(start.dx, horizontalY), dashPaint);
+    canvas.drawLine(
+        Offset(end.dx, horizontalY), Offset(right, horizontalY), dashPaint);
+
+    const fontSize = 12.0;
+    final textPainter = TextPainter(
+      textDirection: TextDirection.ltr,
+    );
+
+    final sign = endPrice > startPrice ? '+' : '-';
+    final percentText = '$sign${percentDiff.toStringAsFixed(2)}%';
+    final priceText = '${sign}${priceDiff.toStringAsFixed(2)}';
+
+    textPainter.text = TextSpan(
+      text: percentText,
+      style: const TextStyle(
+        color: Color(0xFF00BFFF),
+        fontSize: fontSize,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(end.dx + 8, end.dy - 20));
+
+    textPainter.text = TextSpan(
+      text: priceText,
+      style: TextStyle(
+        color: const Color(0xFF00BFFF).withAlpha(200),
+        fontSize: fontSize - 1,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(end.dx + 8, end.dy - 4));
+  }
+
   double _resolveRightAxisLabelLeft(
       double canvasWidth, double labelWidth, double minLeft) {
     final rightPadding = style.layout.yAxisLabelPadding.right;
@@ -2100,7 +2179,9 @@ class ChartPainter extends CustomPainter {
         currentPrice != oldDelegate.currentPrice ||
         (pulseProgress - oldDelegate.pulseProgress).abs() > 0.01 ||
         crosshairPosition != oldDelegate.crosshairPosition ||
-        crosshairIndex != oldDelegate.crosshairIndex;
+        crosshairIndex != oldDelegate.crosshairIndex ||
+        measurementStart != oldDelegate.measurementStart ||
+        measurementEnd != oldDelegate.measurementEnd;
   }
 }
 

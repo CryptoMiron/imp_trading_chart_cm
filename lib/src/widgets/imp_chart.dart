@@ -384,6 +384,12 @@ class _ImpChartState extends State<ImpChart>
   /// This is the index within *visible candles*, not the full dataset.
   int? _crosshairIndex;
 
+  /// Measurement line start position (for right-click drag)
+  Offset? _measurementStart;
+
+  /// Measurement line end position
+  Offset? _measurementEnd;
+
   bool _usesCloseOnlyPriceScale(ChartType chartType) {
     return chartType == ChartType.line;
   }
@@ -1254,8 +1260,31 @@ class _ImpChartState extends State<ImpChart>
 
             child: Listener(
               onPointerMove: (event) {
-                // Always update crosshair on mouse move, even during drag
-                _updateCrosshair(event.localPosition, size);
+                final isSecondary = event.buttons == 2;
+                if (isSecondary && _measurementStart != null) {
+                  setState(() {
+                    _measurementEnd = event.localPosition;
+                  });
+                } else {
+                  _updateCrosshair(event.localPosition, size);
+                }
+              },
+              onPointerDown: (event) {
+                final isSecondary = event.buttons == 2;
+                if (isSecondary) {
+                  setState(() {
+                    _measurementStart = event.localPosition;
+                    _measurementEnd = event.localPosition;
+                  });
+                }
+              },
+              onPointerUp: (event) {
+                if (_measurementStart != null) {
+                  setState(() {
+                    _measurementStart = null;
+                    _measurementEnd = null;
+                  });
+                }
               },
               child: CustomPaint(
                 // ChartPainter is PURELY responsible for drawing.
@@ -1279,6 +1308,8 @@ class _ImpChartState extends State<ImpChart>
                       widget.externalCrosshairPosition ?? _crosshairPosition,
                   crosshairIndex:
                       widget.externalCrosshairIndex ?? _crosshairIndex,
+                  measurementStart: _measurementStart,
+                  measurementEnd: _measurementEnd,
                   chartType: widget.chartType,
                 ),
                 size: size,
