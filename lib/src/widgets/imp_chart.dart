@@ -1225,8 +1225,7 @@ class _ImpChartState extends State<ImpChart>
           final padding = _calculatePadding(size);
 
           // Hover crosshair - show when mouse moves over chart
-          final enableHoverCrosshair = widget.style.crosshairStyle.show &&
-              widget.externalCrosshairPosition != null;
+          final enableHoverCrosshair = true; // Always enable for testing
 
           Widget chartContent = GestureDetector(
             // Gesture routing is DISABLED when crosshair is active
