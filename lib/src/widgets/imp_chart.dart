@@ -116,6 +116,12 @@ class ImpChart extends StatefulWidget {
   /// Optional imperative controller.
   final ImpChartController? controller;
 
+  /// External crosshair index for precise candle center alignment.
+  ///
+  /// When provided, overrides internal crosshair calculation.
+  /// Use this when crosshair position is controlled externally.
+  final int? externalCrosshairIndex;
+
   ImpChart({
     super.key,
     required this.candles,
@@ -129,6 +135,7 @@ class ImpChart extends StatefulWidget {
     this.crosshairChangeFeedback = false,
     this.chartType = ChartType.line,
     this.controller,
+    this.externalCrosshairIndex,
   }) : style = style ?? ChartStyle();
 
   @override
@@ -1222,8 +1229,11 @@ class _ImpChartState extends State<ImpChart>
                 style: widget.style,
                 currentPrice: widget.currentPrice ?? _engine.getLatestPrice(),
                 pulseProgress: _pulseProgress,
-                crosshairPosition: _crosshairPosition,
-                crosshairIndex: _crosshairIndex,
+                crosshairPosition: widget.externalCrosshairIndex != null
+                    ? _crosshairPosition
+                    : _crosshairPosition,
+                crosshairIndex:
+                    widget.externalCrosshairIndex ?? _crosshairIndex,
                 chartType: widget.chartType,
               ),
               size: size,
