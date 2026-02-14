@@ -113,10 +113,23 @@ abstract class PriceFormatter {
   /// - Suitable for tooltips and inspection
   ///
   /// Default behavior:
-  /// - Currency + compact logic
-  /// - 4 decimal places
-  factory PriceFormatter.crosshair({String symbol = '\$', int decimals = 4}) =>
-      _CurrencyCompactPriceFormatter(symbol, decimals);
+  /// - Exact price without symbol or compact suffix
+  /// - 8 decimal places for precision
+  factory PriceFormatter.crosshair({String symbol = '', int decimals = 8}) =>
+      _ExactPriceFormatter(decimals);
+}
+
+/// Exact price formatter without symbol or compact suffixes
+@immutable
+class _ExactPriceFormatter implements PriceFormatter {
+  final int decimals;
+
+  const _ExactPriceFormatter(this.decimals);
+
+  @override
+  String format(double price) {
+    return price.toStringAsFixed(decimals);
+  }
 }
 
 /// ---------------------------------------------------------------------------
