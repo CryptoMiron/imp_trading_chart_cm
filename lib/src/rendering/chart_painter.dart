@@ -2071,28 +2071,21 @@ class ChartPainter extends CustomPainter {
     final priceDiff = (endPrice - startPrice).abs();
     final percentDiff = (priceDiff / startPrice) * 100;
 
+    final candleWidth =
+        mapper.candleWidth + candleGapPxForSlot(mapper.candleWidth);
+    final barsCount = ((end.dx - start.dx) / candleWidth).abs().round();
+
+    const measureColor = Color(0xFFFFD700);
+    const fontSize = 12.0;
+    const offsetX = 20.0;
+
     final linePaint = Paint()
-      ..color = const Color(0xFF00BFFF)
-      ..strokeWidth = 1.5
+      ..color = measureColor
+      ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
     canvas.drawLine(start, end, linePaint);
 
-    final dashPaint = Paint()
-      ..color = const Color(0xFF00BFFF).withAlpha(150)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    final horizontalY = end.dy;
-    final left = mapper.paddingLeft;
-    final right = mapper.paddingLeft + mapper.contentWidth;
-
-    canvas.drawLine(
-        Offset(left, horizontalY), Offset(start.dx, horizontalY), dashPaint);
-    canvas.drawLine(
-        Offset(end.dx, horizontalY), Offset(right, horizontalY), dashPaint);
-
-    const fontSize = 12.0;
     final textPainter = TextPainter(
       textDirection: TextDirection.ltr,
     );
@@ -2100,27 +2093,59 @@ class ChartPainter extends CustomPainter {
     final sign = endPrice > startPrice ? '+' : '-';
     final percentText = '$sign${percentDiff.toStringAsFixed(2)}%';
     final priceText = '${sign}${priceDiff.toStringAsFixed(2)}';
+    final barsText = '$barsCount bars';
 
     textPainter.text = TextSpan(
       text: percentText,
       style: const TextStyle(
-        color: Color(0xFF00BFFF),
+        color: measureColor,
         fontSize: fontSize,
         fontWeight: FontWeight.bold,
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(end.dx + 8, end.dy - 20));
+    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy - 24));
 
     textPainter.text = TextSpan(
       text: priceText,
       style: TextStyle(
-        color: const Color(0xFF00BFFF).withAlpha(200),
+        color: measureColor.withAlpha(200),
         fontSize: fontSize - 1,
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(end.dx + 8, end.dy - 4));
+    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy - 8));
+
+    textPainter.text = TextSpan(
+      text: barsText,
+      style: TextStyle(
+        color: measureColor.withAlpha(180),
+        fontSize: fontSize - 2,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy + 6));
+
+    final crosshairPaint = Paint()
+      ..color = measureColor.withAlpha(180)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final left = mapper.paddingLeft;
+    final right = mapper.paddingLeft + mapper.contentWidth;
+    final top = mapper.paddingTop;
+    final bottom = mapper.paddingTop + mapper.contentHeight;
+
+    canvas.drawLine(
+        Offset(end.dx, top), Offset(end.dx, bottom), crosshairPaint);
+    canvas.drawLine(
+        Offset(left, end.dy), Offset(right, end.dy), crosshairPaint);
+
+    const markerRadius = 3.0;
+    final markerPaint = Paint()
+      ..color = measureColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(end, markerRadius, markerPaint);
   }
 
   double _resolveRightAxisLabelLeft(
