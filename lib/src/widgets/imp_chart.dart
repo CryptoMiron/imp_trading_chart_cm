@@ -1224,7 +1224,11 @@ class _ImpChartState extends State<ImpChart>
           // Padding must be recalculated whenever size changes
           final padding = _calculatePadding(size);
 
-          return GestureDetector(
+          // Hover crosshair - show when mouse moves over chart
+          final enableHoverCrosshair = widget.style.crosshairStyle.show &&
+              widget.externalCrosshairPosition != null;
+
+          Widget chartContent = GestureDetector(
             // Gesture routing is DISABLED when crosshair is active
             onScaleStart: widget.style.crosshairStyle.show
                 ? null
@@ -1276,6 +1280,18 @@ class _ImpChartState extends State<ImpChart>
               size: size,
             ),
           );
+
+          // Add hover support for crosshair
+          if (enableHoverCrosshair) {
+            chartContent = Listener(
+              onPointerMove: (event) {
+                _updateCrosshair(event.localPosition, size);
+              },
+              child: chartContent,
+            );
+          }
+
+          return chartContent;
         },
       ),
     );
