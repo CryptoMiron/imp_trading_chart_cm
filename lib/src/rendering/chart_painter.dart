@@ -2129,8 +2129,11 @@ double candleGapPxForSlot(double slotWidth) {
   if (slotWidth <= 0) {
     return 0;
   }
-  final normalized = ((slotWidth - 6) / 24).clamp(0.0, 1.0).toDouble();
-  return 2 + (2 * normalized);
+  // gap = 15% от body, минимум 2px
+  // Математика: gap = body * 0.15, body = slotWidth - gap
+  // => gap = slotWidth * 0.15 / 1.15 ≈ slotWidth * 0.1304
+  final proportionalGap = slotWidth * 0.1304;
+  return proportionalGap.clamp(2.0, double.infinity);
 }
 
 double _candleBodyWidthPxForSlot(double slotWidth) {
