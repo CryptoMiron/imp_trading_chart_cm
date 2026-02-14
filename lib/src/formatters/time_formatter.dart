@@ -167,14 +167,10 @@ class CrosshairTimeFormatter implements TimeFormatter {
     final month = _monthNames[date.month - 1];
     final year = date.year.toString().substring(2);
 
-    final hour = date.hour;
+    final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
 
-    // Convert to 12-hour clock
-    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final amPm = hour < 12 ? 'AM' : 'PM';
-
-    return '$day $month, $year $hour12:$minute $amPm';
+    return '$day $month, $year $hour:$minute';
   }
 }
 
