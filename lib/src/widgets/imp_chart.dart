@@ -384,9 +384,6 @@ class _ImpChartState extends State<ImpChart>
   /// This is the index within *visible candles*, not the full dataset.
   int? _crosshairIndex;
 
-  /// Flag to trigger crosshair update on next build.
-  bool _needsCrosshairUpdate = false;
-
   bool _usesCloseOnlyPriceScale(ChartType chartType) {
     return chartType == ChartType.line;
   }
@@ -631,7 +628,16 @@ class _ImpChartState extends State<ImpChart>
     // Handle external crosshair position for hover-based crosshair
     if (widget.externalCrosshairPosition !=
         oldWidget.externalCrosshairPosition) {
-      _needsCrosshairUpdate = true;
+      setState(() {
+        _crosshairPosition = widget.externalCrosshairPosition;
+        if (widget.externalCrosshairPosition != null) {
+          final size = const Size(800, 400);
+          _updateCrosshair(widget.externalCrosshairPosition!, size);
+        } else {
+          _crosshairIndex = null;
+          widget.onCrosshairChanged?.call(null);
+        }
+      });
     }
 
     _updateCountdownTicker();
@@ -1198,22 +1204,6 @@ class _ImpChartState extends State<ImpChart>
       child: LayoutBuilder(
         builder: (context, constraints) {
           final size = Size(constraints.maxWidth, constraints.maxHeight);
-
-          // Handle external crosshair position after size is known
-          if (_needsCrosshairUpdate) {
-            _needsCrosshairUpdate = false;
-            if (widget.externalCrosshairPosition != null) {
-              _updateCrosshair(widget.externalCrosshairPosition!, size);
-            } else {
-              // Clear crosshair when position is set to null
-              setState(() {
-                _crosshairPosition = null;
-                _crosshairIndex = null;
-              });
-              widget.onCrosshairChanged?.call(null);
-            }
-          }
-
           // Padding must be recalculated whenever size changes
           final padding = _calculatePadding(size);
 
