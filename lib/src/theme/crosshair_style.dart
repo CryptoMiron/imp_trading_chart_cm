@@ -228,6 +228,8 @@ class CrosshairStyle {
       horizontalLineWidth: lineWidth,
       verticalLineStyle: LineStyle.dotted,
       horizontalLineStyle: LineStyle.dotted,
+      showPriceLabel: true,
+      showTimeLabel: true,
     );
   }
 
