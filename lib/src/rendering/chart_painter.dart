@@ -1864,7 +1864,9 @@ class ChartPainter extends CustomPainter {
     /// - Chart line / candle
     final absoluteIndex = mapper.viewport.startIndex + crosshairIndex!;
     final x = mapper.getCandleCenterX(absoluteIndex);
-    final y = mapper.priceToY(candle.close);
+
+    // Horizontal line follows mouse Y position, not candle price
+    final y = crosshairPosition!.dy;
 
     // Guard against invalid geometry
     if (!x.isFinite || !y.isFinite) return;
@@ -1943,7 +1945,9 @@ class ChartPainter extends CustomPainter {
       // High-precision formatter for crosshair
       final crosshairPriceFormatter = PriceFormatter.crosshair();
 
-      final priceText = crosshairPriceFormatter.format(candle.close);
+      // Use price at mouse Y position
+      final mousePrice = mapper.yToPrice(crosshairPosition!.dy);
+      final priceText = crosshairPriceFormatter.format(mousePrice);
 
       final priceTextStyle = TextStyle(
         color: cs.labelTextColor,
