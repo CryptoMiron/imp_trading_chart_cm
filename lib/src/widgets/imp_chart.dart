@@ -628,16 +628,16 @@ class _ImpChartState extends State<ImpChart>
     // Handle external crosshair position for hover-based crosshair
     if (widget.externalCrosshairPosition !=
         oldWidget.externalCrosshairPosition) {
-      setState(() {
-        _crosshairPosition = widget.externalCrosshairPosition;
-        if (widget.externalCrosshairPosition != null) {
-          final size = const Size(800, 400);
-          _updateCrosshair(widget.externalCrosshairPosition!, size);
-        } else {
+      if (widget.externalCrosshairPosition != null) {
+        final size = const Size(800, 400);
+        _updateCrosshair(widget.externalCrosshairPosition!, size);
+      } else {
+        setState(() {
+          _crosshairPosition = null;
           _crosshairIndex = null;
-          widget.onCrosshairChanged?.call(null);
-        }
-      });
+        });
+        widget.onCrosshairChanged?.call(null);
+      }
     }
 
     _updateCountdownTicker();
@@ -979,30 +979,47 @@ class _ImpChartState extends State<ImpChart>
     // Absolute index in full candle list
     final absoluteIndex = mapper.xToIndex(localPosition.dx);
 
+    // Calculate relative index for visible candles
+    int? relativeIndex;
     if (absoluteIndex >= 0 && absoluteIndex < _engine.candles.length) {
       final visibleCandles = _engine.getVisibleCandles();
-      final relativeIndex = absoluteIndex - mapper.viewport.startIndex;
-
+      relativeIndex = absoluteIndex - mapper.viewport.startIndex;
       if (relativeIndex >= 0 && relativeIndex < visibleCandles.length) {
-        final candle = visibleCandles[relativeIndex];
-
-        // Prevent redundant callbacks for same candle
-        final indexChanged = _crosshairIndex != relativeIndex;
-
         setState(() {
           _crosshairPosition = localPosition;
           _crosshairIndex = relativeIndex;
         });
-
-        if (indexChanged) {
-          widget.onCrosshairChanged?.call(candle);
-
-          if (widget.crosshairChangeFeedback) {
-            HapticFeedback.lightImpact();
-          }
-        }
+        return;
       }
     }
+
+    // Fallback: if position is in chart area but not over a candle,
+    // still show crosshair using nearest visible candle
+    if (localPosition.dx >= mapper.paddingLeft &&
+        localPosition.dx <= mapper.paddingLeft + mapper.contentWidth &&
+        localPosition.dy >= mapper.paddingTop &&
+        localPosition.dy <= mapper.paddingTop + mapper.contentHeight) {
+      final visibleCandles = _engine.getVisibleCandles();
+      if (visibleCandles.isNotEmpty) {
+        // Use first or last visible candle as fallback
+        final fallbackIndex =
+            (localPosition.dx < mapper.paddingLeft + mapper.contentWidth / 2)
+                ? 0
+                : visibleCandles.length - 1;
+        setState(() {
+          _crosshairPosition = localPosition;
+          _crosshairIndex = fallbackIndex;
+        });
+        return;
+      }
+    }
+
+    // Position is outside chart area - hide crosshair
+    setState(() {
+      _crosshairPosition = null;
+      _crosshairIndex = null;
+    });
+    widget.onCrosshairChanged?.call(null);
   }
 
   /// Calculate candle width in pixels for the current viewport.
