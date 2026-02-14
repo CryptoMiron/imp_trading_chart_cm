@@ -2075,16 +2075,19 @@ class ChartPainter extends CustomPainter {
         mapper.candleWidth + candleGapPxForSlot(mapper.candleWidth);
     final barsCount = ((end.dx - start.dx) / candleWidth).abs().round();
 
-    const measureColor = Color(0xFFFFD700);
+    const measureColor = Color(0xFFF9F06B);
     const fontSize = 12.0;
     const offsetX = 20.0;
+    const offsetY = -20.0;
 
     final linePaint = Paint()
       ..color = measureColor
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    canvas.drawLine(start, end, linePaint);
+    const dashWidth = 4.0;
+    const dashSpace = 4.0;
+    _drawDottedLine(canvas, start, end, linePaint, dashWidth, dashSpace);
 
     final textPainter = TextPainter(
       textDirection: TextDirection.ltr,
@@ -2104,7 +2107,7 @@ class ChartPainter extends CustomPainter {
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy - 24));
+    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy + offsetY - 24));
 
     textPainter.text = TextSpan(
       text: priceText,
@@ -2114,7 +2117,7 @@ class ChartPainter extends CustomPainter {
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy - 8));
+    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy + offsetY - 8));
 
     textPainter.text = TextSpan(
       text: barsText,
@@ -2124,7 +2127,7 @@ class ChartPainter extends CustomPainter {
       ),
     );
     textPainter.layout();
-    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy + 6));
+    textPainter.paint(canvas, Offset(end.dx + offsetX, end.dy + offsetY + 6));
 
     final crosshairPaint = Paint()
       ..color = measureColor.withAlpha(180)
@@ -2136,16 +2139,137 @@ class ChartPainter extends CustomPainter {
     final top = mapper.paddingTop;
     final bottom = mapper.paddingTop + mapper.contentHeight;
 
-    canvas.drawLine(
-        Offset(end.dx, top), Offset(end.dx, bottom), crosshairPaint);
-    canvas.drawLine(
-        Offset(left, end.dy), Offset(right, end.dy), crosshairPaint);
+    _drawDottedLine(
+      canvas,
+      Offset(end.dx, top),
+      Offset(end.dx, bottom),
+      crosshairPaint,
+      dashWidth,
+      dashSpace,
+    );
+    _drawDottedLine(
+      canvas,
+      Offset(left, end.dy),
+      Offset(right, end.dy),
+      crosshairPaint,
+      dashWidth,
+      dashSpace,
+    );
+
+    const labelFontSize = 10.0;
+    final priceFormatter = style.priceLabelStyle.formatter;
+
+    final priceLabelText = priceFormatter.format(endPrice);
+    final priceTextStyle = TextStyle(
+      color: measureColor,
+      fontSize: labelFontSize,
+      fontWeight: FontWeight.w500,
+    );
+
+    final priceLabelPainter = TextPainter(
+      text: TextSpan(text: priceLabelText, style: priceTextStyle),
+      textDirection: TextDirection.ltr,
+    );
+    priceLabelPainter.layout();
+
+    final priceLabelBgRect = Rect.fromLTWH(
+      right + 2,
+      end.dy - priceLabelPainter.height / 2 - 2,
+      priceLabelPainter.width + 4,
+      priceLabelPainter.height + 4,
+    );
+    final priceBgPaint = Paint()
+      ..color = const Color(0xFF1E1E1E).withAlpha(230)
+      ..style = PaintingStyle.fill;
+    final priceLabelRRect = RRect.fromRectAndRadius(
+      priceLabelBgRect,
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(priceLabelRRect, priceBgPaint);
+    priceLabelPainter.paint(
+      canvas,
+      Offset(right + 4, end.dy - priceLabelPainter.height / 2),
+    );
+
+    final endIndex = mapper.xToIndex(end.dx);
+    if (endIndex >= 0 && endIndex < candles.length) {
+      final endCandle = candles[endIndex];
+      final crosshairTimeFormatter = const CrosshairTimeFormatter();
+      final timeLabelText = crosshairTimeFormatter.format(endCandle.time);
+
+      final timeTextStyle = TextStyle(
+        color: measureColor,
+        fontSize: labelFontSize,
+        fontWeight: FontWeight.w500,
+      );
+
+      final timeLabelPainter = TextPainter(
+        text: TextSpan(text: timeLabelText, style: timeTextStyle),
+        textDirection: TextDirection.ltr,
+      );
+      timeLabelPainter.layout();
+
+      final timeLabelX = end.dx - timeLabelPainter.width / 2;
+      final timeLabelY = bottom + 4;
+
+      final timeLabelBgRect = Rect.fromLTWH(
+        timeLabelX - 2,
+        timeLabelY - 2,
+        timeLabelPainter.width + 4,
+        timeLabelPainter.height + 4,
+      );
+      final timeLabelRRect = RRect.fromRectAndRadius(
+        timeLabelBgRect,
+        const Radius.circular(2),
+      );
+      canvas.drawRRect(timeLabelRRect, priceBgPaint);
+      timeLabelPainter.paint(
+        canvas,
+        Offset(timeLabelX, timeLabelY),
+      );
+    }
 
     const markerRadius = 3.0;
     final markerPaint = Paint()
       ..color = measureColor
       ..style = PaintingStyle.fill;
     canvas.drawCircle(end, markerRadius, markerPaint);
+  }
+
+  void _drawDottedLine(
+    Canvas canvas,
+    Offset start,
+    Offset end,
+    Paint paint,
+    double dashWidth,
+    double dashSpace,
+  ) {
+    final dx = end.dx - start.dx;
+    final dy = end.dy - start.dy;
+    final distanceSquared = dx * dx + dy * dy;
+    if (distanceSquared == 0) return;
+    final totalLength = math.sqrt(distanceSquared);
+
+    final unitX = dx / totalLength;
+    final unitY = dy / totalLength;
+
+    var currentDistance = 0.0;
+    var draw = true;
+
+    while (currentDistance < totalLength) {
+      final segmentLength = draw ? dashWidth : dashSpace;
+      if (draw) {
+        final startX = start.dx + unitX * currentDistance;
+        final startY = start.dy + unitY * currentDistance;
+        final endSegment =
+            (currentDistance + segmentLength).clamp(0.0, totalLength);
+        final endX = start.dx + unitX * endSegment;
+        final endY = start.dy + unitY * endSegment;
+        canvas.drawLine(Offset(startX, startY), Offset(endX, endY), paint);
+      }
+      currentDistance += segmentLength;
+      draw = !draw;
+    }
   }
 
   double _resolveRightAxisLabelLeft(
