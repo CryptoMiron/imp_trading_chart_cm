@@ -1904,33 +1904,11 @@ class ChartPainter extends CustomPainter {
     );
 
     /// -------------------------------------------------------------------------
-    /// TRACKER POINT (INTERSECTION)
+    /// TRACKER POINT (INTERSECTION) - Disabled for hover crosshair
     /// -------------------------------------------------------------------------
 
-    // Solid center point
-    final pointPaint = Paint()
-      ..color = cs.trackerColor
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(
-      Offset(x, y),
-      cs.trackerRadius,
-      pointPaint,
-    );
-
-    // Optional outer ring for contrast
-    if (cs.showTrackerRing) {
-      final ringPaint = Paint()
-        ..color = cs.trackerRingColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = cs.trackerRingWidth;
-
-      canvas.drawCircle(
-        Offset(x, y),
-        cs.trackerRadius + 2.0,
-        ringPaint,
-      );
-    }
+    // Tracker point is hidden when using hover-based crosshair
+    // to keep only vertical/horizontal lines visible
 
     /// -------------------------------------------------------------------------
     /// LABEL STYLING
