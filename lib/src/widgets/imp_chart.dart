@@ -122,6 +122,12 @@ class ImpChart extends StatefulWidget {
   /// Use this when crosshair position is controlled externally.
   final int? externalCrosshairIndex;
 
+  /// External crosshair position for hover-based crosshair.
+  ///
+  /// When provided, updates crosshair to follow mouse position.
+  /// Use this for mouse hover tracking.
+  final Offset? externalCrosshairPosition;
+
   ImpChart({
     super.key,
     required this.candles,
@@ -136,6 +142,7 @@ class ImpChart extends StatefulWidget {
     this.chartType = ChartType.line,
     this.controller,
     this.externalCrosshairIndex,
+    this.externalCrosshairPosition,
   }) : style = style ?? ChartStyle();
 
   @override
@@ -377,6 +384,9 @@ class _ImpChartState extends State<ImpChart>
   /// This is the index within *visible candles*, not the full dataset.
   int? _crosshairIndex;
 
+  /// Last known widget size for external crosshair updates.
+  Size? _lastKnownSize;
+
   bool _usesCloseOnlyPriceScale(ChartType chartType) {
     return chartType == ChartType.line;
   }
@@ -616,6 +626,21 @@ class _ImpChartState extends State<ImpChart>
       _startContinuousRipple();
     } else if (!rippleEnabled && wasRippleEnabled) {
       _stopContinuousRipple();
+    }
+
+    // Handle external crosshair position for hover-based crosshair
+    if (widget.externalCrosshairPosition !=
+        oldWidget.externalCrosshairPosition) {
+      if (widget.externalCrosshairPosition != null) {
+        final size = _lastKnownSize ?? const Size(800, 400);
+        _updateCrosshair(widget.externalCrosshairPosition!, size);
+      } else {
+        setState(() {
+          _crosshairPosition = null;
+          _crosshairIndex = null;
+        });
+        widget.onCrosshairChanged?.call(null);
+      }
     }
 
     _updateCountdownTicker();
@@ -1182,6 +1207,7 @@ class _ImpChartState extends State<ImpChart>
       child: LayoutBuilder(
         builder: (context, constraints) {
           final size = Size(constraints.maxWidth, constraints.maxHeight);
+          _lastKnownSize = size;
 
           // Padding must be recalculated whenever size changes
           final padding = _calculatePadding(size);
@@ -1229,9 +1255,8 @@ class _ImpChartState extends State<ImpChart>
                 style: widget.style,
                 currentPrice: widget.currentPrice ?? _engine.getLatestPrice(),
                 pulseProgress: _pulseProgress,
-                crosshairPosition: widget.externalCrosshairIndex != null
-                    ? _crosshairPosition
-                    : _crosshairPosition,
+                crosshairPosition:
+                    widget.externalCrosshairPosition ?? _crosshairPosition,
                 crosshairIndex:
                     widget.externalCrosshairIndex ?? _crosshairIndex,
                 chartType: widget.chartType,
