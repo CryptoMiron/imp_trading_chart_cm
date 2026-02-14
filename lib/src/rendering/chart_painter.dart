@@ -6,8 +6,6 @@ import 'package:meta/meta.dart';
 import 'package:imp_trading_chart/imp_trading_chart.dart'
     show Candle, ChartStyle, ChartType, TradingColors;
 import 'package:imp_trading_chart/src/data/enums.dart' show LineStyle;
-import 'package:imp_trading_chart/src/formatters/price_formatter.dart'
-    show PriceFormatter;
 import 'package:imp_trading_chart/src/formatters/time_formatter.dart'
     show TimeFormatContext, CrosshairTimeFormatter;
 import 'package:imp_trading_chart/src/math/coordinate_mapper.dart'
@@ -1920,12 +1918,11 @@ class ChartPainter extends CustomPainter {
     /// PRICE LABEL (RIGHT SIDE)
     /// -------------------------------------------------------------------------
     if (cs.showPriceLabel) {
-      // High-precision formatter for crosshair
-      final crosshairPriceFormatter = PriceFormatter.crosshair();
-
       // Use price at mouse Y position
       final mousePrice = mapper.yToPrice(crosshairPosition!.dy);
-      final priceText = crosshairPriceFormatter.format(mousePrice);
+
+      // Use same formatter as price labels for consistency
+      final priceText = style.priceLabelStyle.formatter.format(mousePrice);
 
       final priceTextStyle = TextStyle(
         color: cs.labelTextColor,
