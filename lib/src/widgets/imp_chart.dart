@@ -1252,31 +1252,37 @@ class _ImpChartState extends State<ImpChart>
                 ? (_) => _handleLongPressEnd()
                 : null,
 
-            child: CustomPaint(
-              // ChartPainter is PURELY responsible for drawing.
-              //
-              // It must remain stateless and deterministic.
-              painter: ChartPainter(
-                candles: _engine.getVisibleCandles(),
-                mapper: _engine.createMapper(
-                  chartWidth: size.width,
-                  chartHeight: size.height,
-                  paddingLeft: padding.left,
-                  paddingRight: padding.right,
-                  paddingTop: padding.top,
-                  paddingBottom: padding.bottom,
-                  rightOffsetBars: widget.style.layout.rightOffsetBars,
+            child: Listener(
+              onPointerMove: (event) {
+                // Always update crosshair on mouse move, even during drag
+                _updateCrosshair(event.localPosition, size);
+              },
+              child: CustomPaint(
+                // ChartPainter is PURELY responsible for drawing.
+                //
+                // It must remain stateless and deterministic.
+                painter: ChartPainter(
+                  candles: _engine.getVisibleCandles(),
+                  mapper: _engine.createMapper(
+                    chartWidth: size.width,
+                    chartHeight: size.height,
+                    paddingLeft: padding.left,
+                    paddingRight: padding.right,
+                    paddingTop: padding.top,
+                    paddingBottom: padding.bottom,
+                    rightOffsetBars: widget.style.layout.rightOffsetBars,
+                  ),
+                  style: widget.style,
+                  currentPrice: widget.currentPrice ?? _engine.getLatestPrice(),
+                  pulseProgress: _pulseProgress,
+                  crosshairPosition:
+                      widget.externalCrosshairPosition ?? _crosshairPosition,
+                  crosshairIndex:
+                      widget.externalCrosshairIndex ?? _crosshairIndex,
+                  chartType: widget.chartType,
                 ),
-                style: widget.style,
-                currentPrice: widget.currentPrice ?? _engine.getLatestPrice(),
-                pulseProgress: _pulseProgress,
-                crosshairPosition:
-                    widget.externalCrosshairPosition ?? _crosshairPosition,
-                crosshairIndex:
-                    widget.externalCrosshairIndex ?? _crosshairIndex,
-                chartType: widget.chartType,
+                size: size,
               ),
-              size: size,
             ),
           );
 
