@@ -2078,7 +2078,7 @@ class ChartPainter extends CustomPainter {
     const measureColor = Color(0xFFF9F06B);
     const fontSize = 12.0;
     const offsetX = 20.0;
-    const offsetY = -20.0;
+    const offsetY = -30.0;
 
     final linePaint = Paint()
       ..color = measureColor
