@@ -570,19 +570,20 @@ class ChartPainter extends CustomPainter {
       }
     }
 
-    /// Draw vertical grid lines (time levels)
+    /// Draw vertical grid lines (time levels) - aligned to candle centers
     final visibleCount = candles.length;
     if (visibleCount == 0) return;
 
-    final verticalLines = axisStyle.verticalGridLines > 0
-        ? axisStyle.verticalGridLines
-        : math.min(visibleCount, 6);
+    // Adaptive step based on candle density
+    // Target: ~60-80px between grid lines
+    final slotWidth = mapper.contentWidth / visibleCount;
+    final targetGap = 70.0;
+    final step = (targetGap / slotWidth).ceil().clamp(1, visibleCount);
 
-    for (int i = 0; i <= verticalLines; i++) {
-      final relativeIndex =
-          (visibleCount * i / verticalLines).round().clamp(0, visibleCount - 1);
-      final index = mapper.viewport.startIndex + relativeIndex;
-      final x = mapper.indexToX(index);
+    // Draw lines at regular intervals, aligned to candle centers
+    for (int i = 0; i < visibleCount; i += step) {
+      final index = mapper.viewport.startIndex + i;
+      final x = mapper.getCandleCenterX(index);
 
       if (x.isFinite && x >= chartLeft && x <= chartRight) {
         _drawStyledLine(
