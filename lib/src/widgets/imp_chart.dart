@@ -1282,6 +1282,7 @@ class _ImpChartState extends State<ImpChart>
 
           // Always add hover support for crosshair
           chartContent = Listener(
+            behavior: HitTestBehavior.opaque,
             onPointerMove: (event) {
               _updateCrosshair(event.localPosition, size);
             },
