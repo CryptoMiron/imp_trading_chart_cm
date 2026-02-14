@@ -1280,15 +1280,13 @@ class _ImpChartState extends State<ImpChart>
             ),
           );
 
-          // Add hover support for crosshair
-          if (enableHoverCrosshair) {
-            chartContent = Listener(
-              onPointerMove: (event) {
-                _updateCrosshair(event.localPosition, size);
-              },
-              child: chartContent,
-            );
-          }
+          // Always add hover support for crosshair
+          chartContent = Listener(
+            onPointerMove: (event) {
+              _updateCrosshair(event.localPosition, size);
+            },
+            child: chartContent,
+          );
 
           return chartContent;
         },
