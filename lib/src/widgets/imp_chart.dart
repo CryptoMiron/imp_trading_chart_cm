@@ -14,6 +14,8 @@ import 'package:imp_trading_chart/src/engine/chart_engine.dart'
     show ChartEngine;
 import 'package:imp_trading_chart/src/engine/chart_viewport.dart'
     show ChartViewport;
+import 'package:imp_trading_chart/src/math/coordinate_mapper.dart'
+    show CoordinateMapper;
 import 'package:imp_trading_chart/src/rendering/chart_painter.dart'
     show ChartPainter, buildAdaptivePriceTicks;
 
@@ -89,6 +91,9 @@ class ImpChart extends StatefulWidget {
   /// ChartViewport is immutable and safe to use for calculations.
   final void Function(ChartEngine)? onViewportChanged;
 
+  /// Callback with a render-ready projection snapshot.
+  final void Function(ChartProjection projection)? onProjectionChanged;
+
   /// Initial number of candles visible on first render.
   ///
   /// Defaults to engine-defined value (usually 100).
@@ -135,6 +140,7 @@ class ImpChart extends StatefulWidget {
     this.currentPrice,
     this.enableGestures = true,
     this.onViewportChanged,
+    this.onProjectionChanged,
     this.defaultVisibleCount,
     this.onCrosshairChanged,
     this.plotFeedback = false,
@@ -167,6 +173,7 @@ class ImpChart extends StatefulWidget {
     double? lineWidth,
     bool showLineGlow = true,
     void Function(ChartEngine)? onViewportChanged,
+    void Function(ChartProjection projection)? onProjectionChanged,
     void Function(Candle?)? onCrosshairChanged,
     int? defaultVisibleCount,
     bool plotFeedback = false,
@@ -177,6 +184,7 @@ class ImpChart extends StatefulWidget {
       candles: candles,
       enableGestures: false,
       onViewportChanged: onViewportChanged,
+      onProjectionChanged: onProjectionChanged,
       onCrosshairChanged: onCrosshairChanged,
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
@@ -204,6 +212,7 @@ class ImpChart extends StatefulWidget {
     double? currentPrice,
     bool enableGestures = true,
     void Function(ChartEngine)? onViewportChanged,
+    void Function(ChartProjection projection)? onProjectionChanged,
     void Function(Candle?)? onCrosshairChanged,
     int? defaultVisibleCount,
     bool plotFeedback = false,
@@ -215,6 +224,7 @@ class ImpChart extends StatefulWidget {
       currentPrice: currentPrice,
       enableGestures: enableGestures,
       onViewportChanged: onViewportChanged,
+      onProjectionChanged: onProjectionChanged,
       onCrosshairChanged: onCrosshairChanged,
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
@@ -246,6 +256,7 @@ class ImpChart extends StatefulWidget {
     bool showCrosshair = true,
     bool enableGestures = true,
     void Function(ChartEngine)? onViewportChanged,
+    void Function(ChartProjection projection)? onProjectionChanged,
     void Function(Candle? candle)? onCrosshairChanged,
     int? defaultVisibleCount,
     bool plotFeedback = true,
@@ -258,6 +269,7 @@ class ImpChart extends StatefulWidget {
       currentPrice: currentPrice,
       enableGestures: enableGestures,
       onViewportChanged: onViewportChanged,
+      onProjectionChanged: onProjectionChanged,
       onCrosshairChanged: onCrosshairChanged,
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
@@ -288,6 +300,7 @@ class ImpChart extends StatefulWidget {
     bool showPriceLabels = true,
     bool showTimeLabels = true,
     void Function(ChartEngine)? onViewportChanged,
+    void Function(ChartProjection projection)? onProjectionChanged,
     void Function(Candle?)? onCrosshairChanged,
     int? defaultVisibleCount,
     bool plotFeedback = false,
@@ -299,6 +312,7 @@ class ImpChart extends StatefulWidget {
       currentPrice: currentPrice,
       enableGestures: enableGestures,
       onViewportChanged: onViewportChanged,
+      onProjectionChanged: onProjectionChanged,
       onCrosshairChanged: onCrosshairChanged,
       defaultVisibleCount: defaultVisibleCount,
       plotFeedback: plotFeedback,
@@ -390,6 +404,11 @@ class _ImpChartState extends State<ImpChart>
   /// Measurement line end position
   Offset? _measurementEnd;
 
+  String? _lastProjectionSignature;
+  String? _pendingProjectionSignature;
+  CoordinateMapper? _pendingProjectionMapper;
+  bool _projectionDispatchScheduled = false;
+
   bool _usesCloseOnlyPriceScale(ChartType chartType) {
     return chartType == ChartType.line;
   }
@@ -456,6 +475,12 @@ class _ImpChartState extends State<ImpChart>
   @override
   void didUpdateWidget(ImpChart oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.onProjectionChanged != widget.onProjectionChanged) {
+      _lastProjectionSignature = null;
+      _pendingProjectionSignature = null;
+      _pendingProjectionMapper = null;
+    }
 
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller?.removeListener(_handleControllerChanged);
@@ -635,8 +660,7 @@ class _ImpChartState extends State<ImpChart>
     if (widget.externalCrosshairPosition !=
         oldWidget.externalCrosshairPosition) {
       if (widget.externalCrosshairPosition != null) {
-        final size = const Size(800, 400);
-        _updateCrosshair(widget.externalCrosshairPosition!, size);
+        _syncExternalCrosshairPosition();
       } else {
         setState(() {
           _crosshairPosition = null;
@@ -660,6 +684,104 @@ class _ImpChartState extends State<ImpChart>
     } else {
       _stopCountdownTicker();
     }
+  }
+
+  Size? _currentRenderSize() {
+    final renderObject = context.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      final size = renderObject.size;
+      if (!size.isEmpty) {
+        return size;
+      }
+    }
+
+    final size = context.size;
+    if (size != null && !size.isEmpty) {
+      return size;
+    }
+
+    return null;
+  }
+
+  void _syncExternalCrosshairPosition() {
+    final externalPosition = widget.externalCrosshairPosition;
+    if (externalPosition == null) {
+      return;
+    }
+
+    final size = _currentRenderSize();
+    if (size != null) {
+      _updateCrosshair(externalPosition, size);
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.externalCrosshairPosition == null) {
+        return;
+      }
+
+      final deferredSize = _currentRenderSize();
+      if (deferredSize == null) {
+        return;
+      }
+
+      _updateCrosshair(widget.externalCrosshairPosition!, deferredSize);
+    });
+  }
+
+  String _projectionSignature(CoordinateMapper mapper) {
+    final viewport = mapper.viewport;
+    final priceScale = mapper.priceScale;
+    return '${viewport.startIndex}|${viewport.visibleCount}|${viewport.totalCount}|${priceScale.min}|${priceScale.max}|${mapper.chartWidth}|${mapper.chartHeight}|${mapper.paddingLeft}|${mapper.paddingRight}|${mapper.paddingTop}|${mapper.paddingBottom}|${mapper.rightOffsetBars}';
+  }
+
+  void _scheduleProjectionChanged(CoordinateMapper mapper) {
+    final callback = widget.onProjectionChanged;
+    if (callback == null) {
+      _pendingProjectionSignature = null;
+      _pendingProjectionMapper = null;
+      return;
+    }
+
+    final signature = _projectionSignature(mapper);
+    if (signature == _lastProjectionSignature ||
+        signature == _pendingProjectionSignature) {
+      return;
+    }
+
+    _pendingProjectionSignature = signature;
+    _pendingProjectionMapper = mapper;
+
+    if (_projectionDispatchScheduled) {
+      return;
+    }
+
+    _projectionDispatchScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _projectionDispatchScheduled = false;
+      if (!mounted) {
+        return;
+      }
+
+      final postFrameCallback = widget.onProjectionChanged;
+      final pendingSignature = _pendingProjectionSignature;
+      final pendingMapper = _pendingProjectionMapper;
+      _pendingProjectionSignature = null;
+      _pendingProjectionMapper = null;
+
+      if (postFrameCallback == null ||
+          pendingSignature == null ||
+          pendingMapper == null) {
+        return;
+      }
+
+      if (pendingSignature == _lastProjectionSignature) {
+        return;
+      }
+
+      _lastProjectionSignature = pendingSignature;
+      postFrameCallback(ChartProjection.fromMapper(pendingMapper));
+    });
   }
 
   void _startCountdownTicker() {
@@ -1230,8 +1352,16 @@ class _ImpChartState extends State<ImpChart>
           // Padding must be recalculated whenever size changes
           final padding = _calculatePadding(size);
 
-          // Hover crosshair - show when mouse moves over chart
-          final enableHoverCrosshair = true; // Always enable for testing
+          final mapper = _engine.createMapper(
+            chartWidth: size.width,
+            chartHeight: size.height,
+            paddingLeft: padding.left,
+            paddingRight: padding.right,
+            paddingTop: padding.top,
+            paddingBottom: padding.bottom,
+            rightOffsetBars: widget.style.layout.rightOffsetBars,
+          );
+          _scheduleProjectionChanged(mapper);
 
           Widget chartContent = GestureDetector(
             // Gesture routing is DISABLED when crosshair is active
@@ -1292,15 +1422,7 @@ class _ImpChartState extends State<ImpChart>
                 // It must remain stateless and deterministic.
                 painter: ChartPainter(
                   candles: _engine.getVisibleCandles(),
-                  mapper: _engine.createMapper(
-                    chartWidth: size.width,
-                    chartHeight: size.height,
-                    paddingLeft: padding.left,
-                    paddingRight: padding.right,
-                    paddingTop: padding.top,
-                    paddingBottom: padding.bottom,
-                    rightOffsetBars: widget.style.layout.rightOffsetBars,
-                  ),
+                  mapper: mapper,
                   style: widget.style,
                   currentPrice: widget.currentPrice ?? _engine.getLatestPrice(),
                   pulseProgress: _pulseProgress,

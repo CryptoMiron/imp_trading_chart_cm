@@ -53,6 +53,7 @@ library;
 /// Users are expected to prepare and aggregate data
 /// before passing it to the chart.
 export 'src/data/candle.dart';
+export 'src/data/chart_projection.dart';
 export 'src/data/enums.dart';
 
 /// ─────────────────────────────────────────────────────────
@@ -94,3 +95,6 @@ export 'src/theme/theme_export.dart';
 /// This widget is intentionally kept thin and declarative.
 /// All heavy logic lives in the internal engine and renderer.
 export 'src/widgets/imp_chart.dart';
+
+/// Crosshair snapping utility and projection abstraction.
+export 'src/interaction/ohlc_snapper.dart';

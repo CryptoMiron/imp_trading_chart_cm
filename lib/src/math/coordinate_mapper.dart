@@ -103,12 +103,17 @@ class CoordinateMapper {
   /// SPECIAL CASE:
   /// - If only one candle is visible, it is centered horizontally.
   double indexToX(int index) {
+    return logicalIndexToX(index.toDouble());
+  }
+
+  /// Convert logical index (fractional candle index) to X coordinate.
+  double logicalIndexToX(double logicalIndex) {
     // Single-candle case: center it
     if (horizontalSlotCount <= 1) {
       return paddingLeft + (contentWidth / 2);
     }
 
-    final relativeIndex = index - viewport.startIndex;
+    final relativeIndex = logicalIndex - viewport.startIndex;
     final normalizedX = relativeIndex / horizontalSlotCount;
 
     return (normalizedX * contentWidth) + paddingLeft;
@@ -134,20 +139,37 @@ class CoordinateMapper {
     // Outside drawable area → invalid
     if (relativeX < 0 || relativeX > contentWidth) return -1;
 
-    // Normalize to [0, visibleCount]
-    final normalizedX = relativeX / contentWidth;
-    final exactRelativeIndex = normalizedX * horizontalSlotCount;
-
-    // Round to nearest candle center
-    final relativeIndex = exactRelativeIndex.round();
-
-    final index = viewport.startIndex + relativeIndex;
+    final logicalIndex = xToLogicalIndex(x);
+    final index = logicalIndex.round();
 
     // Clamp to valid visible range
     return index.clamp(
       viewport.startIndex,
       viewport.endIndex - 1,
     );
+  }
+
+  /// Convert X coordinate to logical index (fractional candle index).
+  double xToLogicalIndex(double x) {
+    // Single-candle case: always return that candle
+    if (horizontalSlotCount <= 1) {
+      return viewport.startIndex.toDouble();
+    }
+
+    final relativeX = (x - paddingLeft).clamp(0.0, contentWidth).toDouble();
+
+    // Normalize to [0, visibleCount]
+    final normalizedX = relativeX / contentWidth;
+    final exactRelativeIndex = normalizedX * horizontalSlotCount;
+
+    final logicalIndex = viewport.startIndex + exactRelativeIndex;
+
+    return logicalIndex
+        .clamp(
+          viewport.startIndex.toDouble(),
+          (viewport.endIndex - 1).toDouble(),
+        )
+        .toDouble();
   }
 
   // ─────────────────────────────────────────────────────────
