@@ -133,6 +133,13 @@ class ImpChart extends StatefulWidget {
   /// Use this for mouse hover tracking.
   final Offset? externalCrosshairPosition;
 
+  /// Minimum number of candles visible during zoom.
+  ///
+  /// Prevents zooming in too far where chart becomes unreadable.
+  /// Defaults to 5 for most chart types, but should be higher
+  /// for bar charts which need more space per bar.
+  final int minVisibleCandles;
+
   ImpChart({
     super.key,
     required this.candles,
@@ -149,6 +156,7 @@ class ImpChart extends StatefulWidget {
     this.controller,
     this.externalCrosshairIndex,
     this.externalCrosshairPosition,
+    this.minVisibleCandles = 5,
   }) : style = style ?? ChartStyle();
 
   @override
@@ -997,10 +1005,18 @@ class _ImpChartState extends State<ImpChart>
 
       // Anchor-based zoom keeps the candle under the finger stable
       if (anchorIndex >= 0 && anchorIndex < _engine.candles.length) {
-        _updateEngine(_engine.zoomAround(anchorIndex, zoomDelta));
+        _updateEngine(
+          _engine.zoomAround(
+            anchorIndex,
+            zoomDelta,
+            minVisible: widget.minVisibleCandles,
+          ),
+        );
       } else {
         // Fallback to center-based zoom
-        _updateEngine(_engine.zoom(zoomDelta));
+        _updateEngine(
+          _engine.zoom(zoomDelta, minVisible: widget.minVisibleCandles),
+        );
       }
 
       // Reset baseline for next scale delta
